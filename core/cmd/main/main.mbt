@@ -1,5 +1,5 @@
 ///|
-let version = "0.1.0"
+let version = "0.2.0"
 
 ///|
 fn print_help() -> Unit {
@@ -185,16 +185,6 @@ fn cmd_new(name : String) -> Unit {
       return
     }
   }
-  // Write purus.json
-  let purus_json = "{\n  \"name\": \"" + name + "\",\n  \"version\": \"0.1.0\",\n  \"main\": \"src/main.purus\"\n}\n"
-  try {
-    @fs.write_string_to_file(name + "/purus.json", purus_json)
-  } catch {
-    @fs.IOError(msg) => {
-      println("Error: " + msg)
-      return
-    }
-  }
   // Write main.purus
   let main_purus =
     #|-- main.purus
@@ -224,17 +214,12 @@ fn cmd_new(name : String) -> Unit {
     }
   }
   println("Created project '" + name + "'")
-  println("  " + name + "/purus.json")
   println("  " + name + "/src/main.purus")
   println("  " + name + "/.gitignore")
 }
 
 ///|
 fn cmd_init() -> Unit {
-  if @fs.path_exists("purus.json") {
-    println("Error: purus.json already exists in current directory")
-    return
-  }
   if not(@fs.path_exists("src")) {
     try {
       @fs.create_dir("src")
@@ -243,21 +228,6 @@ fn cmd_init() -> Unit {
         println("Error: cannot create src directory: " + msg)
         return
       }
-    }
-  }
-  let purus_json =
-    #|{
-    #|  "name": "my-project",
-    #|  "version": "0.1.0",
-    #|  "main": "src/main.purus"
-    #|}
-    #|
-  try {
-    @fs.write_string_to_file("purus.json", purus_json)
-  } catch {
-    @fs.IOError(msg) => {
-      println("Error: " + msg)
-      return
     }
   }
   if not(@fs.path_exists("src/main.purus")) {
