@@ -18,7 +18,9 @@
     "index.mjs",
     "bin/",
     "lib/",
-    "LICENSE"
+    "LICENSE",
+    "README.md",
+    "README-ja.md"
   ],
   "scripts": {
     "build:compiler": "moon build --target js",

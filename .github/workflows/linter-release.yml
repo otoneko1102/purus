@@ -23,9 +23,6 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Copy root README
-        run: cp README.md linter/README.md
-
       - name: Publish to npm
         run: cd linter && npm publish --access public --provenance
         env:

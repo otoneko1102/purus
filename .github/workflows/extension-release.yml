@@ -21,9 +21,6 @@ jobs:
       - name: Install vsce
         run: npm install -g @vscode/vsce
 
-      - name: Copy root README
-        run: cp README.md extension/README.md
-
       - name: Package and publish
         run: cd extension && vsce publish
         env:
