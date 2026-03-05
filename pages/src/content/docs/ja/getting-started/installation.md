@@ -31,6 +31,22 @@ purus build hello.purus
 node hello.js
 ```
 
+またはファイルを生成せずに直接実行:
+
+```sh
+purus run hello.purus
+```
+
+## プロジェクトを作成
+
+`purus new` で設定、スクリプト、依存関係を含むプロジェクトをセットアップ:
+
+```sh
+purus new my-project
+cd my-project
+npm run build
+```
+
 ## ファイル拡張子
 
 | 拡張子 | 出力 | 用途 |

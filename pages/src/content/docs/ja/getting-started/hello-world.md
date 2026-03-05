@@ -17,6 +17,21 @@ const message = "Hello, World";
 console.log(message);
 ```
 
+## 実行方法
+
+ファイルにコンパイル:
+
+```sh
+purus build hello.purus
+node hello.js
+```
+
+または直接実行:
+
+```sh
+purus run hello.purus
+```
+
 ## JavaScriptとの主な違い
 
 | JavaScript | Purus |

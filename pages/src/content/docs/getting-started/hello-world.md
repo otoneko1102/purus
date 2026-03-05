@@ -17,6 +17,21 @@ const message = "Hello, World";
 console.log(message);
 ```
 
+## Running
+
+Compile to a file:
+
+```sh
+purus build hello.purus
+node hello.js
+```
+
+Or run directly:
+
+```sh
+purus run hello.purus
+```
+
 ## Key differences from JavaScript
 
 | JavaScript | Purus |

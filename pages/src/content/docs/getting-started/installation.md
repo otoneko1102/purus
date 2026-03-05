@@ -31,6 +31,22 @@ purus build hello.purus
 node hello.js
 ```
 
+Or run directly without generating files:
+
+```sh
+purus run hello.purus
+```
+
+## Create a project
+
+Use `purus new` to set up a project with configuration, scripts, and dependencies:
+
+```sh
+purus new my-project
+cd my-project
+npm run build
+```
+
 ## File extensions
 
 | Extension | Output | Use case |
