@@ -1,6 +1,6 @@
 {
   "name": "purus",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A language that compiles to JavaScript — no Shift key required",
   "main": "index.js",
   "module": "index.mjs",
