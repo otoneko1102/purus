@@ -1,0 +1,184 @@
+///|
+/// AST node types for the purus language.
+pub(all) enum Expr {
+  // Literals
+  IntLit(Int)
+  FloatLit(Double)
+  StrLit(String)            // raw string content
+  StrInterp(Array[StrPart]) // interpolated string
+  RegexLit(String, String)  // pattern, flags
+  BoolLit(Bool)
+  NullLit                   // null / nil
+  UndefinedLit
+  ArrayLit(Array[Expr])
+  ObjectLit(Array[(String, Expr)])
+  
+  // Identifiers & access
+  Ident(String)
+  DotAccess(Expr, String)       // obj.field
+  IndexAccess(Expr, Int)        // arr.0
+
+  // Operators
+  BinOp(BinOp, Expr, Expr)
+  UnaryNeg(Expr)                // neg x
+  UnaryNot(Expr)                // not x
+  UnaryTypeof(Expr)             // typeof x
+
+  // Comparison / type
+  IsCheck(Expr, String)         // x is string
+  AsCast(Expr, String)          // x as number
+  Instanceof(Expr, Expr)        // x instanceof Y
+
+  // Function
+  FnExpr(Array[String], Array[Stmt]) // anonymous fn
+  FnExprTo(Array[String], Expr)      // anonymous fn x to EXPR
+  Call(Expr, Array[Expr])            // f(a, b)
+  MethodCall(Expr, String, Array[Expr]) // obj.method(a, b)
+  NewExpr(Expr, Array[Expr])         // new X
+  Pipe(Expr, Expr)                   // a pipe b
+
+  // Ternary
+  IfExpr(Expr, Expr, Expr)     // if COND then A else B
+
+  // Try as expression
+  TryExpr(Array[Stmt], String, Array[Stmt]) // try { ... } catch e { ... }
+
+  // Match expression
+  MatchExpr(Expr, Array[MatchArm])
+
+  // Await
+  AwaitExpr(Expr)
+
+  // Delete
+  DeleteExpr(Expr)
+
+  // This
+  ThisExpr
+}
+
+///|
+pub(all) enum StrPart {
+  Lit(String)
+  Interp(Expr)
+}
+
+///|
+pub(all) enum BinOp {
+  Add
+  Sub
+  Mul
+  Div
+  Mod
+  Eq
+  Ne
+  Lt
+  Gt
+  Le
+  Ge
+  And
+  Or
+} derive(Show)
+
+///|
+pub(all) struct MatchArm {
+  pattern : MatchPattern
+  cond : Expr?
+  body : MatchBody
+}
+
+///|
+pub(all) enum MatchPattern {
+  LitPat(Expr)
+  BindPat(String)
+}
+
+///|
+pub(all) enum MatchBody {
+  ExprBody(Expr)
+  BlockBody(Array[Stmt])
+}
+
+///|
+pub(all) enum Stmt {
+  // Variable declarations
+  VarDecl(DeclKind, String, Expr)
+
+  // Assignment
+  Assign(Expr, Expr)
+
+  // Function declaration
+  FnDecl(FnDecl)
+
+  // Control flow
+  If(Expr, Array[Stmt], Array[ElIfBranch], Array[Stmt]?)
+  Unless(Expr, Array[Stmt])
+  While(Expr, Array[Stmt])
+  Until(Expr, Array[Stmt])
+  ForIn(String, String?, Expr, Array[Stmt])  // for x in coll / for i; x in coll
+  ForRange(String, Expr, Expr, Array[Stmt])  // for i in range a; b
+
+  // Match statement
+  MatchStmt(Expr, Array[MatchArm])
+
+  // Postfix
+  PostfixIf(Stmt, Expr)
+  PostfixUnless(Stmt, Expr)
+  PostfixFor(Stmt, String, Expr)
+
+  // Error handling
+  TryCatch(Array[Stmt], String?, Array[Stmt], Array[Stmt]?) // try/catch/finally
+  Throw(Expr)
+
+  // Return
+  Return(Expr?)
+  Break
+  Continue
+
+  // Expression statement
+  ExprStmt(Expr)
+
+  // Module / Import
+  ImportDecl(ImportDecl)
+  UseDecl(String, Array[String]?) // use std.math / from std.math use sin, cos
+  ModDecl(String, Array[Stmt])
+  ExportDefault(Stmt)
+  PubDecl(Stmt)
+  TypeDecl(String, Expr)   // type alias
+
+  // Delete
+  DeleteStmt(Expr)
+}
+
+///|
+pub(all) enum DeclKind {
+  Const_
+  Let_
+  Var_
+}
+
+///|
+pub(all) struct FnDecl {
+  name : String?
+  params : Array[String]
+  body : FnBody
+  is_async : Bool
+}
+
+///|
+pub(all) enum FnBody {
+  Block(Array[Stmt])
+  ToExpr(Expr)
+}
+
+///|
+pub(all) struct ElIfBranch {
+  cond : Expr
+  body : Array[Stmt]
+}
+
+///|
+pub(all) enum ImportDecl {
+  EsImport(String?, Array[String]?, String?, String) // default, named, namespace, from
+  CjsRequire(String, String)                          // name, module
+  DynImport(String)                                    // dynamic import
+}

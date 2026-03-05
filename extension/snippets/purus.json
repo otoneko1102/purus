@@ -1,0 +1,138 @@
+{
+  "Function": {
+    "prefix": "fn",
+    "body": [
+      "fn ${1:name} ${2:params}",
+      "  ${0}"
+    ],
+    "description": "Function declaration"
+  },
+  "Function (expression)": {
+    "prefix": "fnt",
+    "body": "fn ${1:name} ${2:params} to ${0}",
+    "description": "Function with expression body"
+  },
+  "Async Function": {
+    "prefix": "afn",
+    "body": [
+      "async fn ${1:name} ${2:params}",
+      "  ${0}"
+    ],
+    "description": "Async function declaration"
+  },
+  "Const": {
+    "prefix": "const",
+    "body": "const ${1:name} be ${0}",
+    "description": "Constant declaration"
+  },
+  "Let": {
+    "prefix": "let",
+    "body": "let ${1:name} be ${0}",
+    "description": "Variable declaration"
+  },
+  "If": {
+    "prefix": "if",
+    "body": [
+      "if ${1:condition}",
+      "  ${0}"
+    ],
+    "description": "If statement"
+  },
+  "If-Else": {
+    "prefix": "ife",
+    "body": [
+      "if ${1:condition}",
+      "  ${2}",
+      "else",
+      "  ${0}"
+    ],
+    "description": "If-else statement"
+  },
+  "Unless": {
+    "prefix": "unless",
+    "body": [
+      "unless ${1:condition}",
+      "  ${0}"
+    ],
+    "description": "Unless statement"
+  },
+  "For-In": {
+    "prefix": "for",
+    "body": [
+      "for ${1:item} in ${2:items}",
+      "  ${0}"
+    ],
+    "description": "For-in loop"
+  },
+  "For-Range": {
+    "prefix": "forr",
+    "body": [
+      "for ${1:i} in range ${2:0}; ${3:10}",
+      "  ${0}"
+    ],
+    "description": "For-range loop"
+  },
+  "While": {
+    "prefix": "while",
+    "body": [
+      "while ${1:condition}",
+      "  ${0}"
+    ],
+    "description": "While loop"
+  },
+  "Until": {
+    "prefix": "until",
+    "body": [
+      "until ${1:condition}",
+      "  ${0}"
+    ],
+    "description": "Until loop"
+  },
+  "Match": {
+    "prefix": "match",
+    "body": [
+      "match ${1:value}",
+      "  when ${2:pattern} then ${3:result}",
+      "  else ${0}"
+    ],
+    "description": "Match expression"
+  },
+  "Try-Catch": {
+    "prefix": "try",
+    "body": [
+      "try",
+      "  ${1}",
+      "catch ${2:e}",
+      "  ${0}"
+    ],
+    "description": "Try-catch block"
+  },
+  "Import": {
+    "prefix": "imp",
+    "body": "import ${1:module} from ///${2:path}///",
+    "description": "Import statement"
+  },
+  "Import (named)": {
+    "prefix": "impn",
+    "body": "import [${1:names}] from ///${2:path}///",
+    "description": "Named import"
+  },
+  "Export": {
+    "prefix": "pub",
+    "body": "pub ${0}",
+    "description": "Export (pub)"
+  },
+  "Module": {
+    "prefix": "mod",
+    "body": [
+      "mod ${1:name}",
+      "  ${0}"
+    ],
+    "description": "Module namespace"
+  },
+  "Console Log": {
+    "prefix": "log",
+    "body": "console.log[${0}]",
+    "description": "console.log"
+  }
+}

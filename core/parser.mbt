@@ -1,0 +1,694 @@
+///|
+/// Parser for the purus language.
+/// Converts a token stream into an AST.
+pub(all) struct Parser {
+  tokens : Array[Token]
+  mut pos : Int
+}
+
+///|
+pub fn Parser::new(tokens : Array[Token]) -> Parser {
+  { tokens, pos: 0 }
+}
+
+///|
+fn Parser::peek(self : Parser) -> TokenKind {
+  if self.pos >= self.tokens.length() {
+    Eof
+  } else {
+    self.tokens[self.pos].kind
+  }
+}
+
+///|
+fn Parser::advance(self : Parser) -> TokenKind {
+  let tok = self.peek()
+  self.pos += 1
+  tok
+}
+
+///|
+fn Parser::expect(self : Parser, expected : TokenKind) -> Unit {
+  let got = self.advance()
+  // We just skip if it doesn't match for now (permissive parsing)
+  let _ = got
+  let _ = expected
+}
+
+///|
+fn Parser::skip_newlines_and_indent(self : Parser) -> Int {
+  let mut indent = 0
+  while self.pos < self.tokens.length() {
+    match self.peek() {
+      Newline | Comment(_) | BlockComment(_) => { self.pos += 1 }
+      Indent(n) => { indent = n; self.pos += 1 }
+      _ => break
+    }
+  }
+  indent
+}
+
+
+
+///|
+/// Parse the entire program
+pub fn Parser::parse(self : Parser) -> Array[Stmt] {
+  let stmts : Array[Stmt] = []
+  self.skip_newlines_and_indent() |> ignore
+  while self.pos < self.tokens.length() && self.peek() != Eof {
+    match self.parse_stmt() {
+      Some(s) => stmts.push(s)
+      None => {
+        // Skip token if we can't parse
+        self.pos += 1
+      }
+    }
+    self.skip_newlines_and_indent() |> ignore
+  }
+  stmts
+}
+
+///|
+fn Parser::parse_block(self : Parser, min_indent : Int) -> Array[Stmt] {
+  let stmts : Array[Stmt] = []
+  // Parse the first statement (indent was already consumed by caller)
+  match self.parse_stmt() {
+    Some(s) => stmts.push(s)
+    None => ()
+  }
+  // Parse subsequent statements at the same or greater indent level
+  while self.pos < self.tokens.length() && self.peek() != Eof {
+    let saved = self.pos
+    let indent = self.skip_newlines_and_indent()
+    if indent < min_indent {
+      // Dedent - end of block
+      self.pos = saved
+      break
+    }
+    match self.parse_stmt() {
+      Some(s) => stmts.push(s)
+      None => { self.pos += 1 }
+    }
+  }
+  stmts
+}
+
+///|
+fn Parser::parse_stmt(self : Parser) -> Stmt? {
+  // Skip comments
+  match self.peek() {
+    Comment(_) | BlockComment(_) => {
+      self.pos += 1
+      return None
+    }
+    Indent(_) => { self.pos += 1 }
+    _ => ()
+  }
+  match self.peek() {
+    Const_ => Some(self.parse_var_decl(DeclKind::Const_))
+    Let_ => Some(self.parse_var_decl(DeclKind::Let_))
+    Var_ => Some(self.parse_var_decl(DeclKind::Var_))
+    Fn => self.parse_fn_decl(false)
+    Async_ => {
+      self.pos += 1
+      if self.peek() == Fn {
+        self.parse_fn_decl(true)
+      } else {
+        Some(ExprStmt(self.parse_expr()))
+      }
+    }
+    If_ => Some(self.parse_if_stmt())
+    Unless => Some(self.parse_unless_stmt())
+    While_ => Some(self.parse_while_stmt())
+    Until => Some(self.parse_until_stmt())
+    For_ => Some(self.parse_for_stmt())
+    Match_ => Some(self.parse_match_stmt())
+    Return_ => {
+      self.pos += 1
+      match self.peek() {
+        Newline | Eof | Indent(_) => Some(Return(None))
+        _ => Some(Return(Some(self.parse_expr())))
+      }
+    }
+    Break_ => { self.pos += 1; Some(Break) }
+    Continue_ => { self.pos += 1; Some(Continue) }
+    Try_ => Some(self.parse_try_stmt())
+    Throw_ => {
+      self.pos += 1
+      let expr = self.parse_expr()
+      Some(self.maybe_postfix(Throw(expr)))
+    }
+    Import_ => Some(self.parse_import_stmt())
+    Use_ => Some(self.parse_use_stmt())
+    From_ => Some(self.parse_from_use_stmt())
+    Mod_ => Some(self.parse_mod_stmt())
+    Export_ => Some(self.parse_export_stmt())
+    Pub_ => {
+      self.pos += 1
+      match self.parse_stmt() {
+        Some(s) => Some(PubDecl(s))
+        None => None
+      }
+    }
+    Delete_ => {
+      self.pos += 1
+      Some(DeleteStmt(self.parse_expr()))
+    }
+    Type_ => Some(self.parse_type_decl())
+    _ => {
+      let expr = self.parse_expr()
+      // Check for assignment: EXPR be EXPR
+      if self.peek() == Be {
+        self.pos += 1
+        let value = self.parse_expr()
+        Some(self.maybe_postfix(Assign(expr, value)))
+      } else {
+        Some(self.maybe_postfix(ExprStmt(expr)))
+      }
+    }
+  }
+}
+
+///|
+fn Parser::maybe_postfix(self : Parser, stmt : Stmt) -> Stmt {
+  match self.peek() {
+    If_ => {
+      self.pos += 1
+      let cond = self.parse_expr()
+      PostfixIf(stmt, cond)
+    }
+    Unless => {
+      self.pos += 1
+      let cond = self.parse_expr()
+      PostfixUnless(stmt, cond)
+    }
+    For_ => {
+      self.pos += 1
+      // postfix for: STMT for NAME in EXPR
+      let name = self.parse_ident_name()
+      self.expect(In_)
+      let iter = self.parse_expr()
+      PostfixFor(stmt, name, iter)
+    }
+    _ => stmt
+  }
+}
+
+///|
+fn Parser::parse_ident_name(self : Parser) -> String {
+  match self.advance() {
+    Ident(s) => s
+    _ => "unknown"
+  }
+}
+
+///|
+fn Parser::parse_var_decl(self : Parser, kind : DeclKind) -> Stmt {
+  self.pos += 1 // skip const/let/var
+  let name = self.parse_ident_name()
+  // Optional type annotation: of TYPE
+  if self.peek() == Of {
+    // Skip type annotation for now
+    self.pos += 1
+    self.skip_type_annotation()
+  }
+  self.expect(Be)
+  let value = self.parse_expr()
+  self.maybe_postfix(VarDecl(kind, name, value))
+}
+
+///|
+fn Parser::skip_type_annotation(self : Parser) -> Unit {
+  // Skip type tokens until we hit 'be' or newline
+  while self.pos < self.tokens.length() {
+    match self.peek() {
+      Be | Newline | Eof => break
+      _ => { self.pos += 1 }
+    }
+  }
+}
+
+///|
+fn Parser::parse_fn_decl(self : Parser, is_async : Bool) -> Stmt? {
+  self.pos += 1 // skip fn
+  // Check if next token is a name or parameter
+  let name : String? = match self.peek() {
+    Ident(s) => {
+      self.pos += 1
+      Some(s)
+    }
+    _ => None
+  }
+  let params = self.parse_param_list()
+  // Check for 'gives' return type annotation  
+  if self.peek() == Gives {
+    self.pos += 1
+    self.skip_type_annotation()
+  }
+  let body : FnBody = if self.peek() == To {
+    self.pos += 1
+    ToExpr(self.parse_expr())
+  } else {
+    // Block body - read indented block
+    let saved = self.pos
+    let indent = self.skip_newlines_and_indent()
+    let _ = saved
+    let stmts = self.parse_block(indent)
+    Block(stmts)
+  }
+  let decl : FnDecl = { name, params, body, is_async }
+  Some(FnDecl(decl))
+}
+
+///|
+fn Parser::parse_param_list(self : Parser) -> Array[String] {
+  let params : Array[String] = []
+  while self.pos < self.tokens.length() {
+    match self.peek() {
+      Ident(s) => {
+        self.pos += 1
+        params.push(s)
+        // Optional type annotation: of TYPE
+        if self.peek() == Of {
+          self.pos += 1
+          // Skip type name
+          while self.pos < self.tokens.length() {
+            match self.peek() {
+              Semicolon | Newline | Eof | To | Gives | Ident(_) => break
+              _ => { self.pos += 1 }
+            }
+          }
+        }
+        // ; separates params
+        if self.peek() == Semicolon {
+          self.pos += 1
+        } else {
+          break
+        }
+      }
+      _ => break
+    }
+  }
+  params
+}
+
+///|
+fn Parser::parse_if_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip if
+  let cond = self.parse_expr()
+  // Check for inline then
+  if self.peek() == Then_ {
+    self.pos += 1
+    let then_expr = self.parse_expr()
+    self.expect(Else_)
+    let else_expr = self.parse_expr()
+    return ExprStmt(IfExpr(cond, then_expr, else_expr))
+  }
+  let saved = self.pos
+  let indent = self.skip_newlines_and_indent()
+  let _ = saved
+  let body = self.parse_block(indent)
+  // Check for elif / else
+  let elifs : Array[ElIfBranch] = []
+  let mut else_body : Array[Stmt]? = None
+  // Continue looking for elif/else at the parent indent level
+  let mut keep_going = true
+  while keep_going {
+    let saved2 = self.pos
+    let _ = self.skip_newlines_and_indent()
+    match self.peek() {
+      Elif => {
+        self.pos += 1
+        let elif_cond = self.parse_expr()
+        let elif_indent = self.skip_newlines_and_indent()
+        let elif_body = self.parse_block(elif_indent)
+        elifs.push({ cond: elif_cond, body: elif_body })
+      }
+      Else_ => {
+        self.pos += 1
+        // Check for "else if"
+        if self.peek() == If_ {
+          self.pos += 1
+          let elif_cond = self.parse_expr()
+          let elif_indent = self.skip_newlines_and_indent()
+          let elif_body = self.parse_block(elif_indent)
+          elifs.push({ cond: elif_cond, body: elif_body })
+        } else {
+          let else_indent = self.skip_newlines_and_indent()
+          else_body = Some(self.parse_block(else_indent))
+          keep_going = false
+        }
+      }
+      _ => {
+        self.pos = saved2
+        keep_going = false
+      }
+    }
+  }
+  let else_result : Array[Stmt]? = else_body
+  If(cond, body, elifs, else_result)
+}
+
+///|
+fn Parser::parse_unless_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip unless
+  let cond = self.parse_expr()
+  let saved = self.pos
+  let indent = self.skip_newlines_and_indent()
+  let _ = saved
+  let body = self.parse_block(indent)
+  Unless(cond, body)
+}
+
+///|
+fn Parser::parse_while_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip while
+  let cond = self.parse_expr()
+  let saved = self.pos
+  let indent = self.skip_newlines_and_indent()
+  let _ = saved
+  let body = self.parse_block(indent)
+  While(cond, body)
+}
+
+///|
+fn Parser::parse_until_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip until
+  let cond = self.parse_expr()
+  let saved = self.pos
+  let indent = self.skip_newlines_and_indent()
+  let _ = saved
+  let body = self.parse_block(indent)
+  Until(cond, body)
+}
+
+///|
+fn Parser::parse_for_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip for
+  let first = self.parse_ident_name()
+  // Check for index; element pattern
+  if self.peek() == Semicolon {
+    self.pos += 1
+    let second = self.parse_ident_name()
+    self.expect(In_)
+    let iter = self.parse_expr()
+    if self.peek() == Eof || self.peek() == Newline {
+      // Parse block
+      let saved = self.pos
+      let indent = self.skip_newlines_and_indent()
+      let _ = saved
+      let body = self.parse_block(indent)
+      return ForIn(second, Some(first), iter, body)
+    }
+    let saved = self.pos
+    let indent = self.skip_newlines_and_indent()
+    let _ = saved
+    let body = self.parse_block(indent)
+    return ForIn(second, Some(first), iter, body)
+  }
+  self.expect(In_)
+  // Check for range
+  if self.peek() == Range_ {
+    self.pos += 1
+    let start = self.parse_primary()
+    self.expect(Semicolon)
+    let end = self.parse_primary()
+    let saved = self.pos
+    let indent = self.skip_newlines_and_indent()
+    let _ = saved
+    let body = self.parse_block(indent)
+    return ForRange(first, start, end, body)
+  }
+  let iter = self.parse_expr()
+  let saved = self.pos
+  let indent = self.skip_newlines_and_indent()
+  let _ = saved
+  let body = self.parse_block(indent)
+  ForIn(first, None, iter, body)
+}
+
+///|
+fn Parser::parse_match_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip match
+  let subject = self.parse_expr()
+  let saved = self.pos
+  let indent = self.skip_newlines_and_indent()
+  let _ = saved
+  let arms = self.parse_match_arms(indent)
+  MatchStmt(subject, arms)
+}
+
+///|
+fn Parser::parse_match_arms(self : Parser, min_indent : Int) -> Array[MatchArm] {
+  let arms : Array[MatchArm] = []
+  // Parse the first arm (indent already consumed by caller)
+  self.parse_one_match_arm(arms) |> ignore
+  // Parse subsequent arms at the same indent level
+  while self.pos < self.tokens.length() {
+    let saved = self.pos
+    let indent = self.skip_newlines_and_indent()
+    if indent < min_indent {
+      self.pos = saved
+      break
+    }
+    if not(self.parse_one_match_arm(arms)) {
+      self.pos = saved
+      break
+    }
+  }
+  arms
+}
+
+///|
+/// Try to parse a single match arm (when/else). Returns true if successful.
+fn Parser::parse_one_match_arm(self : Parser, arms : Array[MatchArm]) -> Bool {
+  match self.peek() {
+    When_ => {
+      self.pos += 1
+      let pattern = self.parse_match_pattern()
+      let cond_val : Expr? = if self.peek() == If_ {
+        self.pos += 1
+        Some(self.parse_expr())
+      } else {
+        None
+      }
+      let body : MatchBody = if self.peek() == Then_ {
+        self.pos += 1
+        ExprBody(self.parse_expr())
+      } else {
+        let bi = self.skip_newlines_and_indent()
+        BlockBody(self.parse_block(bi))
+      }
+      arms.push({ pattern, cond: cond_val, body })
+      true
+    }
+    Else_ => {
+      self.pos += 1
+      let body : MatchBody = if self.peek() == Then_ || self.peek() != Newline {
+        ExprBody(self.parse_expr())
+      } else {
+        let bi = self.skip_newlines_and_indent()
+        BlockBody(self.parse_block(bi))
+      }
+      arms.push({ pattern: BindPat("_"), cond: None, body })
+      true
+    }
+    _ => false
+  }
+}
+
+///|
+fn Parser::parse_match_pattern(self : Parser) -> MatchPattern {
+  match self.peek() {
+    Int(n) => { self.pos += 1; LitPat(IntLit(n)) }
+    Float(n) => { self.pos += 1; LitPat(FloatLit(n)) }
+    Str(s) => { self.pos += 1; LitPat(StrLit(s)) }
+    True_ => { self.pos += 1; LitPat(BoolLit(true)) }
+    False_ => { self.pos += 1; LitPat(BoolLit(false)) }
+    Null_ | Nil_ => { self.pos += 1; LitPat(NullLit) }
+    Ident(s) => { self.pos += 1; BindPat(s) }
+    _ => { self.pos += 1; BindPat("_") }
+  }
+}
+
+///|
+fn Parser::parse_try_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip try
+  let saved = self.pos
+  let indent = self.skip_newlines_and_indent()
+  let _ = saved
+  let try_body = self.parse_block(indent)
+  // Look for catch
+  let saved2 = self.pos
+  let _ = self.skip_newlines_and_indent()
+  let mut catch_name : String? = None
+  let mut catch_body : Array[Stmt] = []
+  let mut finally_body : Array[Stmt]? = None
+  if self.peek() == Catch_ {
+    self.pos += 1
+    catch_name = match self.peek() {
+      Ident(s) => { self.pos += 1; Some(s) }
+      _ => None
+    }
+    let s3 = self.pos
+    let ci = self.skip_newlines_and_indent()
+    let _ = s3
+    catch_body = self.parse_block(ci)
+  } else {
+    self.pos = saved2
+  }
+  // Look for finally
+  let saved3 = self.pos
+  let _ = self.skip_newlines_and_indent()
+  if self.peek() == Finally_ {
+    self.pos += 1
+    let s4 = self.pos
+    let fi = self.skip_newlines_and_indent()
+    let _ = s4
+    finally_body = Some(self.parse_block(fi))
+  } else {
+    self.pos = saved3
+  }
+  TryCatch(try_body, catch_name, catch_body, finally_body)
+}
+
+///|
+fn Parser::parse_import_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip import
+  // import X from ///...///
+  // import [X, Y] from ///...///
+  // import X, [Y, Z] from ///...///
+  // import all as X from ///...///
+  if self.peek() == All_ {
+    self.pos += 1
+    self.expect(As)
+    let ns = self.parse_ident_name()
+    self.expect(From_)
+    let module_name = self.parse_string_value()
+    return ImportDecl(EsImport(None, None, Some(ns), module_name))
+  }
+  if self.peek() == LBracket {
+    // named imports
+    let named = self.parse_bracket_names()
+    self.expect(From_)
+    let module_name = self.parse_string_value()
+    return ImportDecl(EsImport(None, Some(named), None, module_name))
+  }
+  let default_name = self.parse_ident_name()
+  if self.peek() == Comma {
+    self.pos += 1
+    let named = self.parse_bracket_names()
+    self.expect(From_)
+    let module_name = self.parse_string_value()
+    return ImportDecl(EsImport(Some(default_name), Some(named), None, module_name))
+  }
+  self.expect(From_)
+  let module_name = self.parse_string_value()
+  ImportDecl(EsImport(Some(default_name), None, None, module_name))
+}
+
+///|
+fn Parser::parse_bracket_names(self : Parser) -> Array[String] {
+  let names : Array[String] = []
+  self.expect(LBracket)
+  while self.pos < self.tokens.length() && self.peek() != RBracket {
+    match self.peek() {
+      Ident(s) => { self.pos += 1; names.push(s) }
+      Comma => { self.pos += 1 }
+      _ => { self.pos += 1 }
+    }
+  }
+  if self.peek() == RBracket {
+    self.pos += 1
+  }
+  names
+}
+
+///|
+fn Parser::parse_string_value(self : Parser) -> String {
+  match self.advance() {
+    Str(s) => s
+    _ => ""
+  }
+}
+
+///|
+fn Parser::parse_use_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip use
+  let path = self.parse_dotted_name()
+  UseDecl(path, None)
+}
+
+///|
+fn Parser::parse_from_use_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip from
+  let path = self.parse_dotted_name()
+  self.expect(Use_)
+  let names : Array[String] = []
+  let mut keep = true
+  while keep {
+    match self.peek() {
+      Ident(s) => {
+        self.pos += 1
+        names.push(s)
+        if self.peek() == Comma {
+          self.pos += 1
+        } else {
+          keep = false
+        }
+      }
+      _ => keep = false
+    }
+  }
+  UseDecl(path, Some(names))
+}
+
+///|
+fn Parser::parse_dotted_name(self : Parser) -> String {
+  let buf = StringBuilder::new()
+  match self.peek() {
+    Ident(s) => { self.pos += 1; buf.write_string(s) }
+    _ => ()
+  }
+  while self.peek() == Dot {
+    self.pos += 1
+    buf.write_char('.')
+    match self.peek() {
+      Ident(s) => { self.pos += 1; buf.write_string(s) }
+      _ => ()
+    }
+  }
+  buf.to_string()
+}
+
+///|
+fn Parser::parse_mod_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip mod
+  let name = self.parse_ident_name()
+  let saved = self.pos
+  let indent = self.skip_newlines_and_indent()
+  let _ = saved
+  let body = self.parse_block(indent)
+  ModDecl(name, body)
+}
+
+///|
+fn Parser::parse_export_stmt(self : Parser) -> Stmt {
+  self.pos += 1 // skip export
+  if self.peek() == Default_ {
+    self.pos += 1
+  }
+  match self.parse_stmt() {
+    Some(s) => ExportDefault(s)
+    None => ExportDefault(ExprStmt(UndefinedLit))
+  }
+}
+
+///|
+fn Parser::parse_type_decl(self : Parser) -> Stmt {
+  self.pos += 1 // skip type
+  let name = self.parse_ident_name()
+  self.expect(Be)
+  let value = self.parse_expr()
+  TypeDecl(name, value)
+}

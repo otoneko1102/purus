@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" width="400" height="100">
+  <defs>
+    <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffb347" />
+      <stop offset="100%" stop-color="#fd7e14" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(30, 10) scale(0.8)">
+    <path d="M 50 10 L 85 30 L 85 70 L 50 90 L 15 70 L 15 30 Z" fill="none" stroke="#6c757d" stroke-width="8" stroke-linejoin="round" />
+    <path d="M 50 25 Q 50 50 25 50 Q 50 50 50 75 Q 50 50 75 50 Q 50 50 50 25 Z" fill="url(#sparkGrad)" />
+  </g>
+
+  <g fill="none" stroke="#6c757d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    
+    <path d="M 130 80 V 20 H 160 V 50 H 130" />
+    
+    <path d="M 180 40 V 80 H 210 V 40" />
+    
+    <path d="M 230 80 V 40 H 260" />
+    
+    <path d="M 280 40 V 80 H 310 V 40" />
+    
+    <path d="M 360 40 H 330 V 60 H 360 V 80 H 330" />
+    
+  </g>
+</svg>

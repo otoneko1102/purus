@@ -1,0 +1,12 @@
+{
+  "name": "username/core",
+  "version": "0.1.0",
+  "deps": {
+    "moonbitlang/x": "0.4.40"
+  },
+  "readme": "README.md",
+  "repository": "https://github.com/otoneko1102/purus",
+  "license": "Apache-2.0",
+  "keywords": ["purus", "compiler", "altjs", "javascript"],
+  "description": "A language that compiles to JavaScript — no Shift key required"
+}

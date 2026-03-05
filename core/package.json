@@ -1,0 +1,51 @@
+{
+  "name": "purus",
+  "version": "0.0.1",
+  "description": "A language that compiles to JavaScript — no Shift key required",
+  "main": "index.js",
+  "module": "index.mjs",
+  "exports": {
+    ".": {
+      "import": "./index.mjs",
+      "require": "./index.js"
+    }
+  },
+  "bin": {
+    "purus": "bin/purus.js"
+  },
+  "files": [
+    "index.js",
+    "index.mjs",
+    "bin/",
+    "lib/",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build:compiler": "moon build --target js",
+    "build:copy": "node scripts/build.js",
+    "build": "npm run build:compiler && npm run build:copy",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "compiler",
+    "language",
+    "javascript",
+    "transpiler",
+    "altjs",
+    "lang",
+    "purus",
+    "noshift",
+    "noshift.js"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/otoneko1102/purus",
+    "directory": "core"
+  },
+  "homepage": "https://purus.work",
+  "engines": {
+    "node": ">=18"
+  }
+}

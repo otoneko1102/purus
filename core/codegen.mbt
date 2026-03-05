@@ -1,0 +1,578 @@
+///|
+/// JavaScript code generator for the purus language.
+/// Traverses the AST and emits JavaScript source code.
+pub(all) struct JsCodegen {
+  buf : StringBuilder
+  mut indent_level : Int
+}
+
+///|
+pub fn JsCodegen::new() -> JsCodegen {
+  { buf: StringBuilder::new(), indent_level: 0 }
+}
+
+///|
+fn JsCodegen::write(self : JsCodegen, s : String) -> Unit {
+  self.buf.write_string(s)
+}
+
+///|
+fn JsCodegen::writeln(self : JsCodegen, s : String) -> Unit {
+  self.write_indent()
+  self.buf.write_string(s)
+  self.buf.write_char('\n')
+}
+
+///|
+fn JsCodegen::write_indent(self : JsCodegen) -> Unit {
+  let mut i = 0
+  while i < self.indent_level {
+    self.buf.write_string("  ")
+    i += 1
+  }
+}
+
+///|
+pub fn JsCodegen::generate(
+  self : JsCodegen,
+  stmts : Array[Stmt],
+  header~ : String = "",
+  shebang~ : String = ""
+) -> String {
+  if shebang.length() > 0 {
+    self.buf.write_string(shebang)
+    self.buf.write_char('\n')
+  }
+  if header.length() > 0 {
+    self.buf.write_string(header)
+    self.buf.write_char('\n')
+  }
+  for stmt in stmts {
+    self.gen_stmt(stmt)
+  }
+  self.buf.to_string()
+}
+
+///|
+fn JsCodegen::gen_stmt(self : JsCodegen, stmt : Stmt) -> Unit {
+  match stmt {
+    VarDecl(kind, name, value) => {
+      let kw = match kind {
+        Const_ => "const"
+        Let_ => "let"
+        Var_ => "var"
+      }
+      self.write_indent()
+      self.write(kw)
+      self.write(" ")
+      self.write(js_ident(name))
+      self.write(" = ")
+      self.gen_expr(value)
+      self.write(";\n")
+    }
+    Assign(target, value) => {
+      self.write_indent()
+      self.gen_expr(target)
+      self.write(" = ")
+      self.gen_expr(value)
+      self.write(";\n")
+    }
+    FnDecl(decl) => self.gen_fn_decl(decl)
+    If(cond, body, elifs, else_body) =>
+      self.gen_if(cond, body, elifs, else_body)
+    Unless(cond, body) => {
+      self.write_indent()
+      self.write("if (!(")
+      self.gen_expr(cond)
+      self.write(")) {\n")
+      self.indent_level += 1
+      for s in body {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      self.writeln("}")
+    }
+    While(cond, body) => {
+      self.write_indent()
+      self.write("while (")
+      self.gen_expr(cond)
+      self.write(") {\n")
+      self.indent_level += 1
+      for s in body {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      self.writeln("}")
+    }
+    Until(cond, body) => {
+      self.write_indent()
+      self.write("while (!(")
+      self.gen_expr(cond)
+      self.write(")) {\n")
+      self.indent_level += 1
+      for s in body {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      self.writeln("}")
+    }
+    ForIn(name, index, iter, body) => {
+      match index {
+        Some(idx) => {
+          self.write_indent()
+          self.write("for (let [")
+          self.write(js_ident(idx))
+          self.write(", ")
+          self.write(js_ident(name))
+          self.write("] of ")
+          self.gen_expr(iter)
+          self.write(".entries()) {\n")
+        }
+        None => {
+          self.write_indent()
+          self.write("for (const ")
+          self.write(js_ident(name))
+          self.write(" of ")
+          self.gen_expr(iter)
+          self.write(") {\n")
+        }
+      }
+      self.indent_level += 1
+      for s in body {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      self.writeln("}")
+    }
+    ForRange(name, start, end, body) => {
+      self.write_indent()
+      self.write("for (let ")
+      self.write(js_ident(name))
+      self.write(" = ")
+      self.gen_expr(start)
+      self.write("; ")
+      self.write(js_ident(name))
+      self.write(" < ")
+      self.gen_expr(end)
+      self.write("; ")
+      self.write(js_ident(name))
+      self.write("++) {\n")
+      self.indent_level += 1
+      for s in body {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      self.writeln("}")
+    }
+    MatchStmt(subject, arms) => self.gen_match(subject, arms)
+    PostfixIf(inner, cond) => {
+      self.write_indent()
+      self.write("if (")
+      self.gen_expr(cond)
+      self.write(") ")
+      self.gen_stmt_inline(inner)
+      self.write("\n")
+    }
+    PostfixUnless(inner, cond) => {
+      self.write_indent()
+      self.write("if (!(")
+      self.gen_expr(cond)
+      self.write(")) ")
+      self.gen_stmt_inline(inner)
+      self.write("\n")
+    }
+    PostfixFor(inner, name, iter) => {
+      self.write_indent()
+      self.write("for (const ")
+      self.write(js_ident(name))
+      self.write(" of ")
+      self.gen_expr(iter)
+      self.write(") ")
+      self.gen_stmt_inline(inner)
+      self.write("\n")
+    }
+    TryCatch(try_body, catch_name, catch_body, finally_body) => {
+      self.writeln("try {")
+      self.indent_level += 1
+      for s in try_body {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      self.write_indent()
+      self.write("} catch (")
+      self.write(
+        match catch_name {
+          Some(n) => js_ident(n)
+          None => "e"
+        },
+      )
+      self.write(") {\n")
+      self.indent_level += 1
+      for s in catch_body {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      match finally_body {
+        Some(fb) => {
+          self.writeln("} finally {")
+          self.indent_level += 1
+          for s in fb {
+            self.gen_stmt(s)
+          }
+          self.indent_level -= 1
+          self.writeln("}")
+        }
+        None => self.writeln("}")
+      }
+    }
+    Throw(expr) => {
+      self.write_indent()
+      self.write("throw ")
+      self.gen_expr(expr)
+      self.write(";\n")
+    }
+    Return(value) => {
+      self.write_indent()
+      match value {
+        Some(v) => {
+          self.write("return ")
+          self.gen_expr(v)
+          self.write(";\n")
+        }
+        None => self.write("return;\n")
+      }
+    }
+    Break => self.writeln("break;")
+    Continue => self.writeln("continue;")
+    ExprStmt(expr) => {
+      self.write_indent()
+      self.gen_expr(expr)
+      self.write(";\n")
+    }
+    ImportDecl(decl) => self.gen_import(decl)
+    UseDecl(path, names) => {
+      // use X.Y → import * from "X/Y" or import { a, b } from "X/Y"
+      let module_path = path.replace_all(old=".", new="/")
+      match names {
+        Some(ns) => {
+          self.write_indent()
+          self.write("import { ")
+          let mut first = true
+          for n in ns {
+            if not(first) {
+              self.write(", ")
+            }
+            self.write(n)
+            first = false
+          }
+          self.write(" } from \"")
+          self.write(module_path)
+          self.write("\";\n")
+        }
+        None => {
+          self.write_indent()
+          self.write("import * as ")
+          // Use last segment as namespace
+          let mut last = path
+          let parts = path.split(".")
+          for p in parts {
+            last = p.to_string()
+          }
+          self.write(last)
+          self.write(" from \"")
+          self.write(module_path)
+          self.write("\";\n")
+        }
+      }
+    }
+    ModDecl(name, body) => {
+      self.write_indent()
+      self.write("const ")
+      self.write(js_ident(name))
+      self.write(" = (() => {\n")
+      self.indent_level += 1
+      for s in body {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      self.writeln("})();")
+    }
+    ExportDefault(inner) => {
+      self.write_indent()
+      self.write("export default ")
+      self.gen_stmt_inline(inner)
+      self.write("\n")
+    }
+    PubDecl(inner) => {
+      self.write_indent()
+      self.write("export ")
+      self.gen_stmt_inline(inner)
+      self.write("\n")
+    }
+    TypeDecl(_, _) => () // Type declarations are erased at runtime
+    DeleteStmt(expr) => {
+      self.write_indent()
+      self.write("delete ")
+      self.gen_expr(expr)
+      self.write(";\n")
+    }
+  }
+}
+
+///|
+/// Generate a statement inline (without leading indent, without trailing newline)
+fn JsCodegen::gen_stmt_inline(self : JsCodegen, stmt : Stmt) -> Unit {
+  match stmt {
+    VarDecl(kind, name, value) => {
+      let kw = match kind {
+        Const_ => "const"
+        Let_ => "let"
+        Var_ => "var"
+      }
+      self.write(kw)
+      self.write(" ")
+      self.write(js_ident(name))
+      self.write(" = ")
+      self.gen_expr(value)
+      self.write(";")
+    }
+    ExprStmt(expr) => {
+      self.gen_expr(expr)
+      self.write(";")
+    }
+    Return(Some(v)) => {
+      self.write("return ")
+      self.gen_expr(v)
+      self.write(";")
+    }
+    Return(None) => self.write("return;")
+    Throw(expr) => {
+      self.write("throw ")
+      self.gen_expr(expr)
+      self.write(";")
+    }
+    Assign(target, value) => {
+      self.gen_expr(target)
+      self.write(" = ")
+      self.gen_expr(value)
+      self.write(";")
+    }
+    _ => self.gen_stmt(stmt) // fallback
+  }
+}
+
+///|
+fn JsCodegen::gen_fn_decl(self : JsCodegen, decl : FnDecl) -> Unit {
+  self.write_indent()
+  if decl.is_async {
+    self.write("async ")
+  }
+  self.write("function")
+  match decl.name {
+    Some(n) => {
+      self.write(" ")
+      self.write(js_ident(n))
+    }
+    None => ()
+  }
+  self.write("(")
+  let mut first = true
+  for p in decl.params {
+    if not(first) {
+      self.write(", ")
+    }
+    self.write(js_ident(p))
+    first = false
+  }
+  self.write(") ")
+  match decl.body {
+    ToExpr(expr) => {
+      self.write("{ return ")
+      self.gen_expr(expr)
+      self.write("; }\n")
+    }
+    Block(stmts) => {
+      self.write("{\n")
+      self.indent_level += 1
+      for s in stmts {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      self.writeln("}")
+    }
+  }
+}
+
+///|
+fn JsCodegen::gen_if(
+  self : JsCodegen,
+  cond : Expr,
+  body : Array[Stmt],
+  elifs : Array[ElIfBranch],
+  else_body : Array[Stmt]?
+) -> Unit {
+  self.write_indent()
+  self.write("if (")
+  self.gen_expr(cond)
+  self.write(") {\n")
+  self.indent_level += 1
+  for s in body {
+    self.gen_stmt(s)
+  }
+  self.indent_level -= 1
+  for elif in elifs {
+    self.write_indent()
+    self.write("} else if (")
+    self.gen_expr(elif.cond)
+    self.write(") {\n")
+    self.indent_level += 1
+    for s in elif.body {
+      self.gen_stmt(s)
+    }
+    self.indent_level -= 1
+  }
+  match else_body {
+    Some(eb) => {
+      self.writeln("} else {")
+      self.indent_level += 1
+      for s in eb {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      self.writeln("}")
+    }
+    None => self.writeln("}")
+  }
+}
+
+///|
+fn JsCodegen::gen_match(
+  self : JsCodegen,
+  subject : Expr,
+  arms : Array[MatchArm]
+) -> Unit {
+  // Compile match to if-else chain
+  self.write_indent()
+  let mut first = true
+  for arm in arms {
+    if not(first) {
+      self.write(" else ")
+    } else {
+      // don't write indent for first
+    }
+    match arm.pattern {
+      LitPat(lit) => {
+        self.write("if (")
+        self.gen_expr(subject)
+        self.write(" === ")
+        self.gen_expr(lit)
+        match arm.cond {
+          Some(c) => {
+            self.write(" && ")
+            self.gen_expr(c)
+          }
+          None => ()
+        }
+        self.write(") {\n")
+      }
+      BindPat(name) => {
+        if name == "_" {
+          // Default/else case
+          if not(first) {
+            self.write("{\n")
+          } else {
+            self.write("{\n")
+          }
+        } else {
+          self.write("if (true) { const ")
+          self.write(js_ident(name))
+          self.write(" = ")
+          self.gen_expr(subject)
+          self.write(";\n")
+        }
+      }
+    }
+    self.indent_level += 1
+    match arm.body {
+      ExprBody(expr) => {
+        self.write_indent()
+        self.gen_expr(expr)
+        self.write(";\n")
+      }
+      BlockBody(stmts) => {
+        for s in stmts {
+          self.gen_stmt(s)
+        }
+      }
+    }
+    self.indent_level -= 1
+    self.write_indent()
+    self.write("}")
+    first = false
+  }
+  self.write("\n")
+}
+
+///|
+fn JsCodegen::gen_import(self : JsCodegen, decl : ImportDecl) -> Unit {
+  match decl {
+    EsImport(default_name, named, ns_name, module_name) => {
+      self.write_indent()
+      self.write("import ")
+      let mut has_prev = false
+      match default_name {
+        Some(n) => {
+          self.write(n)
+          has_prev = true
+        }
+        None => ()
+      }
+      match named {
+        Some(names) => {
+          if has_prev {
+            self.write(", ")
+          }
+          self.write("{ ")
+          let mut first = true
+          for n in names {
+            if not(first) {
+              self.write(", ")
+            }
+            self.write(n)
+            first = false
+          }
+          self.write(" }")
+          has_prev = true
+        }
+        None => ()
+      }
+      match ns_name {
+        Some(ns) => {
+          if has_prev {
+            self.write(", ")
+          }
+          self.write("* as ")
+          self.write(ns)
+        }
+        None => ()
+      }
+      self.write(" from \"")
+      self.write(module_name)
+      self.write("\";\n")
+    }
+    CjsRequire(name, module_name) => {
+      self.write_indent()
+      self.write("const ")
+      self.write(js_ident(name))
+      self.write(" = require(\"")
+      self.write(module_name)
+      self.write("\");\n")
+    }
+    DynImport(module_name) => {
+      self.write_indent()
+      self.write("import(\"")
+      self.write(module_name)
+      self.write("\");\n")
+    }
+  }
+}

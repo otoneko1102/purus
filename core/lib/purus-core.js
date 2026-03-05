@@ -1,0 +1,83 @@
+/**
+ * Purus compiler core - JavaScript API bridge
+ *
+ * Uses the MoonBit-compiled purus CLI (built to JS target)
+ * via child_process to provide a clean API.
+ */
+
+"use strict";
+
+const { execFileSync } = require("child_process");
+const path = require("path");
+
+const COMPILER_JS = path.join(__dirname, "purus-compiler.js");
+const VERSION = "0.0.1";
+
+/**
+ * Compile Purus source code to JavaScript.
+ *
+ * @param {string} source - Purus source code
+ * @param {Object} [options]
+ * @param {boolean} [options.header=true] - Include header comment
+ * @returns {string} Generated JavaScript code
+ */
+function compile(source, options = {}) {
+  const { header = true } = options;
+  const tmpFile = path.join(
+    require("os").tmpdir(),
+    `purus_${Date.now()}_${Math.random().toString(36).slice(2)}.purus`
+  );
+  const fs = require("fs");
+  try {
+    fs.writeFileSync(tmpFile, source, "utf8");
+    const args = ["build", "--stdout"];
+    if (!header) args.push("--no-header");
+    args.push(tmpFile);
+    const result = execFileSync(process.execPath, [COMPILER_JS, ...args], {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 30000,
+    });
+    return result;
+  } finally {
+    try {
+      fs.unlinkSync(tmpFile);
+    } catch {
+      // ignore cleanup errors
+    }
+  }
+}
+
+/**
+ * Check Purus source code for syntax errors.
+ *
+ * @param {string} source - Purus source code
+ * @returns {true} Returns true if valid
+ * @throws {Error} If syntax check fails
+ */
+function check(source) {
+  const tmpFile = path.join(
+    require("os").tmpdir(),
+    `purus_${Date.now()}_${Math.random().toString(36).slice(2)}.purus`
+  );
+  const fs = require("fs");
+  try {
+    fs.writeFileSync(tmpFile, source, "utf8");
+    execFileSync(process.execPath, [COMPILER_JS, "check", tmpFile], {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 30000,
+    });
+    return true;
+  } catch (err) {
+    throw new Error(`Syntax error: ${err.stderr || err.message}`);
+  } finally {
+    try {
+      fs.unlinkSync(tmpFile);
+    } catch {
+      // ignore cleanup errors
+    }
+  }
+}
+
+module.exports = { compile, check, version: VERSION };

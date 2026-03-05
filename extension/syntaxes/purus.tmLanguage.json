@@ -1,0 +1,223 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Purus",
+  "scopeName": "source.purus",
+  "patterns": [
+    { "include": "#shebang" },
+    { "include": "#comment-block" },
+    { "include": "#comment-line" },
+    { "include": "#string" },
+    { "include": "#regex" },
+    { "include": "#number" },
+    { "include": "#declaration" },
+    { "include": "#function" },
+    { "include": "#control-flow" },
+    { "include": "#module" },
+    { "include": "#operator" },
+    { "include": "#type-keyword" },
+    { "include": "#constant" },
+    { "include": "#other-keyword" },
+    { "include": "#support" },
+    { "include": "#punctuation" },
+    { "include": "#identifier" }
+  ],
+  "repository": {
+    "shebang": {
+      "match": "\\A#!.*$",
+      "name": "comment.line.shebang.purus"
+    },
+    "comment-line": {
+      "match": "--(?!-).*$",
+      "name": "comment.line.double-dash.purus"
+    },
+    "comment-block": {
+      "begin": "---",
+      "end": "---",
+      "name": "comment.block.purus"
+    },
+    "string": {
+      "begin": "///",
+      "end": "///",
+      "name": "string.quoted.triple-slash.purus",
+      "patterns": [
+        {
+          "match": "\\\\[nt\\\\/\\[\\]]",
+          "name": "constant.character.escape.purus"
+        }
+      ]
+    },
+    "regex": {
+      "match": "(?<=[=\\[,;\\s])(/(?![/\\*])(?:[^/\\\\\\n]|\\\\.)+/[gimsuy]*)",
+      "captures": {
+        "1": { "name": "string.regexp.purus" }
+      }
+    },
+    "number": {
+      "patterns": [
+        {
+          "match": "\\b\\d+\\.\\d+\\b",
+          "name": "constant.numeric.float.purus"
+        },
+        {
+          "match": "\\b\\d+\\b",
+          "name": "constant.numeric.integer.purus"
+        }
+      ]
+    },
+    "declaration": {
+      "match": "\\b(const|let|var)\\b",
+      "name": "storage.type.purus"
+    },
+    "function": {
+      "patterns": [
+        {
+          "match": "\\b(async)\\s+(fn)\\s+([a-zA-Z][a-zA-Z0-9-]*)",
+          "captures": {
+            "1": { "name": "storage.modifier.async.purus" },
+            "2": { "name": "storage.type.function.purus" },
+            "3": { "name": "entity.name.function.purus" }
+          }
+        },
+        {
+          "match": "\\b(fn)\\s+([a-zA-Z][a-zA-Z0-9-]*)(?=\\s+[a-zA-Z]|\\s*$|\\s+to\\b)",
+          "captures": {
+            "1": { "name": "storage.type.function.purus" },
+            "2": { "name": "entity.name.function.purus" }
+          }
+        },
+        {
+          "match": "\\b(fn)\\b",
+          "name": "storage.type.function.purus"
+        }
+      ]
+    },
+    "control-flow": {
+      "patterns": [
+        {
+          "match": "\\b(if|elif|else|unless|then)\\b",
+          "name": "keyword.control.conditional.purus"
+        },
+        {
+          "match": "\\b(while|until|for|in|range)\\b",
+          "name": "keyword.control.loop.purus"
+        },
+        {
+          "match": "\\b(match|when)\\b",
+          "name": "keyword.control.match.purus"
+        },
+        {
+          "match": "\\b(try|catch|finally)\\b",
+          "name": "keyword.control.trycatch.purus"
+        },
+        {
+          "match": "\\b(return|break|continue|throw)\\b",
+          "name": "keyword.control.flow.purus"
+        }
+      ]
+    },
+    "module": {
+      "patterns": [
+        {
+          "match": "\\b(import|from|export|require|use|mod|pub|all)\\b",
+          "name": "keyword.control.import.purus"
+        },
+        {
+          "match": "\\b(default)\\b",
+          "name": "keyword.control.default.purus"
+        }
+      ]
+    },
+    "operator": {
+      "patterns": [
+        {
+          "match": "\\b(be)\\b",
+          "name": "keyword.operator.assignment.purus"
+        },
+        {
+          "match": "\\b(add|sub|mul|div|mod|neg)\\b",
+          "name": "keyword.operator.arithmetic.purus"
+        },
+        {
+          "match": "\\b(eq|ne|lt|gt|le|ge)\\b",
+          "name": "keyword.operator.comparison.purus"
+        },
+        {
+          "match": "\\b(and|or|not)\\b",
+          "name": "keyword.operator.logical.purus"
+        },
+        {
+          "match": "\\b(pipe)\\b",
+          "name": "keyword.operator.pipe.purus"
+        }
+      ]
+    },
+    "type-keyword": {
+      "match": "\\b(is|as|of|gives|typeof|instanceof|type)\\b",
+      "name": "keyword.other.type.purus"
+    },
+    "constant": {
+      "patterns": [
+        {
+          "match": "\\b(true|false)\\b",
+          "name": "constant.language.boolean.purus"
+        },
+        {
+          "match": "\\b(null|nil|undefined)\\b",
+          "name": "constant.language.purus"
+        }
+      ]
+    },
+    "other-keyword": {
+      "match": "\\b(new|delete|this|await)\\b",
+      "name": "keyword.other.purus"
+    },
+    "support": {
+      "match": "\\b(list|object)\\b",
+      "name": "support.type.purus"
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "match": "\\[",
+          "name": "punctuation.bracket.open.purus"
+        },
+        {
+          "match": "\\]",
+          "name": "punctuation.bracket.close.purus"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.purus"
+        },
+        {
+          "match": ";",
+          "name": "punctuation.separator.semicolon.purus"
+        },
+        {
+          "match": "\\.",
+          "name": "punctuation.accessor.purus"
+        }
+      ]
+    },
+    "identifier": {
+      "patterns": [
+        {
+          "match": "(?<=\\.)([a-zA-Z][a-zA-Z0-9-]*)(?=\\[)",
+          "name": "entity.name.function.method.purus"
+        },
+        {
+          "match": "([a-zA-Z][a-zA-Z0-9-]*)(?=\\[)",
+          "name": "entity.name.function.call.purus"
+        },
+        {
+          "match": "\\b[A-Z][a-zA-Z0-9-]*\\b",
+          "name": "support.class.purus"
+        },
+        {
+          "match": "\\b[a-zA-Z][a-zA-Z0-9-]*\\b",
+          "name": "variable.other.purus"
+        }
+      ]
+    }
+  }
+}

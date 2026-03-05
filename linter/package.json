@@ -1,0 +1,29 @@
+{
+  "name": "@puruslang/linter",
+  "version": "0.0.1",
+  "description": "Linter for the Purus language",
+  "license": "Apache-2.0",
+  "main": "src/index.js",
+  "bin": {
+    "purus-lint": "src/cli.js"
+  },
+  "keywords": [
+    "linter",
+    "purus",
+    "static-analysis",
+    "altjs",
+    "lang",
+    "language",
+    "noshift",
+    "noshift.js"
+  ],
+  "homepage": "https://purus.work",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/otoneko1102/purus",
+    "directory": "linter"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

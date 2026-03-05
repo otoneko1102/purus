@@ -1,0 +1,118 @@
+///|
+/// Token types for the purus language lexer.
+pub(all) enum TokenKind {
+  // Literals
+  Int(Int)
+  Float(Double)
+  Str(String)      // already-parsed string content (no ///)
+  Regex(String, String) // pattern, flags
+  True_
+  False_
+
+  // Identifiers & keywords
+  Ident(String)
+  // Variable declarations
+  Const_
+  Let_
+  Var_
+  Be
+
+  // Operators (keyword-style)
+  Add
+  Sub
+  Mul
+  Div
+  Mod
+  Neg
+
+  // Comparison
+  Eq
+  Ne
+  Lt
+  Gt
+  Le
+  Ge
+
+  // Logic
+  And
+  Or
+  Not
+
+  // Special keywords
+  Fn
+  Return_
+  To
+  If_
+  Elif
+  Else_
+  Unless
+  Then_
+  While_
+  Until
+  For_
+  In_
+  Range_
+  Break_
+  Continue_
+  Match_
+  When_
+  Pipe_
+  Is
+  As
+  Of
+  Gives
+  Typeof_
+  Instanceof_
+  New_
+  Delete_
+  This_
+  Async_
+  Await_
+  Try_
+  Catch_
+  Finally_
+  Throw_
+  Import_
+  From_
+  Export_
+  Default_
+  Require_
+  Use_
+  Mod_
+  Pub_
+  All_
+  Type_
+
+  // Null-family
+  Null_
+  Nil_
+  Undefined_
+
+  // Explicit constructors (reserved keywords)
+  List_
+  Object_
+
+  // Punctuation
+  LBracket    // [
+  RBracket    // ]
+  Comma       // ,
+  Semicolon   // ;
+  Dot         // .
+
+  // Line-related
+  Newline
+  Indent(Int) // indentation level (number of spaces)
+  
+  // Special
+  Shebang(String)  // #!...
+  Comment(String)
+  BlockComment(String)
+  Eof
+} derive(Show, Eq)
+
+///|
+pub(all) struct Token {
+  kind : TokenKind
+  line : Int
+  col : Int
+} derive(Show)
