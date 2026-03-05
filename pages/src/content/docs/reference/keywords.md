@@ -1,0 +1,131 @@
+---
+title: Keywords
+description: Complete list of Purus keywords.
+---
+
+## Declaration
+
+| Keyword | JS Output | Description |
+|---|---|---|
+| `const` | `const` | Constant declaration |
+| `let` | `let` | Variable declaration |
+| `var` | `var` | Var declaration (discouraged) |
+| `be` | `=` | Assignment |
+
+## Functions
+
+| Keyword | JS Output | Description |
+|---|---|---|
+| `fn` | `function` | Function declaration/expression |
+| `return` | `return` | Return value |
+| `to` | `=> expr` | Expression body |
+| `gives` | _(erased)_ | Return type annotation |
+| `async` | `async` | Async function |
+| `await` | `await` | Await expression |
+
+## Conditional
+
+| Keyword | JS Output | Description |
+|---|---|---|
+| `if` | `if` | Conditional |
+| `elif` | `else if` | Else-if branch |
+| `else` | `else` | Else branch |
+| `unless` | `if (!(...))` | Negated conditional |
+| `then` | _(ternary/inline)_ | Inline conditional |
+
+## Loops
+
+| Keyword | JS Output | Description |
+|---|---|---|
+| `while` | `while` | While loop |
+| `until` | `while (!(...))` | Negated while loop |
+| `for` | `for` | For loop |
+| `in` | `of` / `in` | Iterator |
+| `range` | _(numeric range)_ | Range-based loop |
+| `break` | `break` | Break |
+| `continue` | `continue` | Continue |
+
+## Pattern Matching
+
+| Keyword | JS Output | Description |
+|---|---|---|
+| `match` | if-else chain | Match expression |
+| `when` | _(match arm)_ | Match case |
+
+## Modules
+
+| Keyword | JS Output | Description |
+|---|---|---|
+| `import` | `import` | ESM import |
+| `from` | `from` | Import source |
+| `export` | `export` | ESM export |
+| `default` | `default` | Default export |
+| `require` | `require()` | CJS require |
+| `use` | `import` | Dot-path import |
+| `mod` | IIFE | Module namespace |
+| `pub` | `export` | Public export |
+| `all` | `* as` | Namespace import |
+
+## Operators
+
+### Arithmetic
+
+| Keyword | JS Output |
+|---|---|
+| `add` | `+` |
+| `sub` | `-` |
+| `mul` | `*` |
+| `div` | `/` |
+| `mod` | `%` |
+| `neg` | `-` (unary) |
+
+### Comparison
+
+| Keyword | JS Output |
+|---|---|
+| `eq` | `===` |
+| `ne` | `!==` |
+| `lt` | `<` |
+| `gt` | `>` |
+| `le` | `<=` |
+| `ge` | `>=` |
+
+### Logical
+
+| Keyword | JS Output |
+|---|---|
+| `and` | `&&` |
+| `or` | `\|\|` |
+| `not` | `!` |
+
+### Pipeline
+
+| Keyword | JS Output |
+|---|---|
+| `pipe` | `b(a)` |
+
+## Type Keywords
+
+| Keyword | JS Output | Description |
+|---|---|---|
+| `is` | `typeof` / `instanceof` | Type check |
+| `as` | _(erased)_ | Type cast |
+| `of` | _(erased)_ | Type annotation |
+| `typeof` | `typeof` | Typeof operator |
+| `instanceof` | `instanceof` | Instance check |
+| `type` | _(erased)_ | Type alias |
+
+## Other
+
+| Keyword | JS Output |
+|---|---|
+| `new` | `new` |
+| `delete` | `delete` |
+| `this` | `this` |
+| `throw` | `throw` |
+| `try` | `try` |
+| `catch` | `catch` |
+| `finally` | `finally` |
+| `pipe` | pipeline operator |
+| `list` | array literal |
+| `object` | object literal |

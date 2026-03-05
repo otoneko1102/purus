@@ -1,0 +1,34 @@
+---
+title: Purusへようこそ
+description: JavaScriptにコンパイルされる言語 — Shiftキー不要。
+template: splash
+hero:
+  tagline: Shiftキーを押さずにコードを書く。美しく、シンプルで、使いやすい。
+  image:
+    file: ../../../assets/icon.png
+  actions:
+    - text: はじめる
+      link: /ja/getting-started/installation/
+      icon: right-arrow
+    - text: GitHubで見る
+      link: https://github.com/otoneko1102/purus
+      variant: minimal
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="Shiftキー不要" icon="star">
+    `{}()=+*` のような記号を `be`、`add`、`fn`、`[]` のような単語に置き換えます。
+  </Card>
+  <Card title="JavaScriptにコンパイル" icon="rocket">
+    Purusで書いて、きれいなJavaScriptを取得。JSが動く場所ならどこでも使えます。
+  </Card>
+  <Card title="インデントベース" icon="pencil">
+    波括弧なし。Pythonのようにインデントでブロックを定義します。
+  </Card>
+  <Card title="充実のツール" icon="setting">
+    Linter、Prettierプラグイン、VS Code拡張機能を同梱。
+  </Card>
+</CardGrid>

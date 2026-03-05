@@ -1,0 +1,62 @@
+---
+title: VS Code Extension
+description: Purus language support for Visual Studio Code.
+---
+
+## Installation
+
+Search for **Purus** in the VS Code Extension Marketplace, or install from the command line:
+
+```sh
+code --install-extension otoneko1102.purus
+```
+
+## Features
+
+### Syntax Highlighting
+
+Full TextMate grammar for `.purus`, `.cpurus`, and `.mpurus` files with highlighting for:
+
+- Keywords (`fn`, `const`, `let`, `if`, `for`, `match`, etc.)
+- Operators (`be`, `add`, `sub`, `eq`, `and`, `pipe`, etc.)
+- Strings (`///...///`)
+- Comments (`--` line, `---` block)
+- Numbers (integers, floats)
+- Function definitions and calls
+- Regular expressions
+
+### Snippets
+
+| Prefix | Description |
+|---|---|
+| `fn` | Function declaration |
+| `fnt` | Function with expression body |
+| `afn` | Async function |
+| `const` | Constant declaration |
+| `let` | Variable declaration |
+| `if` | If statement |
+| `ife` | If-else statement |
+| `unless` | Unless statement |
+| `for` | For-in loop |
+| `forr` | For-range loop |
+| `while` | While loop |
+| `until` | Until loop |
+| `match` | Match expression |
+| `try` | Try-catch block |
+| `imp` | Import statement |
+| `impn` | Named import |
+| `pub` | Export (pub) |
+| `mod` | Module namespace |
+| `log` | console.log |
+
+### File Icons
+
+`.purus`, `.cpurus`, and `.mpurus` files automatically get the Purus icon — no settings.json modification required.
+
+### Language Configuration
+
+- **Comment toggle**: `Ctrl+/` inserts `--` line comments
+- **Block comments**: `--- ... ---`
+- **Auto-closing**: `[]` brackets and `///` strings
+- **Folding**: indent-based folding (off-side rule)
+- **Word pattern**: supports `kebab-case` identifiers

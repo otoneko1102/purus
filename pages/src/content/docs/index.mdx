@@ -1,0 +1,34 @@
+---
+title: Welcome to Purus
+description: A language that compiles to JavaScript — no Shift key required.
+template: splash
+hero:
+  tagline: Write code without the Shift key. Beautiful, simple, and easy-to-use.
+  image:
+    file: ../../assets/icon.png
+  actions:
+    - text: Get Started
+      link: /getting-started/installation/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/otoneko1102/purus
+      variant: minimal
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="No Shift Key" icon="star">
+    Purus replaces symbols like `{}()=+*` with words like `be`, `add`, `fn`, `[]`.
+  </Card>
+  <Card title="Compiles to JavaScript" icon="rocket">
+    Write Purus, get clean JavaScript. Use it anywhere JS runs.
+  </Card>
+  <Card title="Indent-based" icon="pencil">
+    No curly braces. Blocks are defined by indentation, like Python.
+  </Card>
+  <Card title="Full Tooling" icon="setting">
+    Linter, Prettier plugin, and VS Code extension included.
+  </Card>
+</CardGrid>
