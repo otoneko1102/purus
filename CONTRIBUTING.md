@@ -145,6 +145,10 @@ Releases are managed via git tags:
 | VS Code Extension | via workflow |
 | Documentation | auto-deployed on push to `main` |
 
+## Code of Conduct
+
+This project adheres to a [Code of Conduct](https://github.com/otoneko1102/purus/blob/main/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [Apache 2.0 License](https://github.com/otoneko1102/purus/blob/main/LICENSE).

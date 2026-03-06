@@ -145,6 +145,10 @@ npx astro dev
 | VS Code 拡張機能 | ワークフローで管理 |
 | ドキュメント | `main` へのプッシュで自動デプロイ |
 
+## 行動規範
+
+このプロジェクトは[行動規範 (Code of Conduct)](https://github.com/otoneko1102/purus/blob/main/CODE_OF_CONDUCT-ja.md) に従っています。参加することで、この規範を守ることが求められます。
+
 ## ライセンス
 
 貢献していただいたコードは [Apache 2.0 ライセンス](https://github.com/otoneko1102/purus/blob/main/LICENSE) のもとで公開されます。
