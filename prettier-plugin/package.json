@@ -1,6 +1,6 @@
 {
   "name": "@puruslang/prettier-plugin-purus",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Prettier plugin for the Purus language",
   "license": "Apache-2.0",
   "main": "src/index.js",
@@ -11,8 +11,7 @@
     "altjs",
     "lang",
     "language",
-    "noshift",
-    "noshift.js"
+    "noshift"
   ],
   "peerDependencies": {
     "prettier": "^3.0.0"

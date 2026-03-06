@@ -1,12 +1,17 @@
 {
   "name": "username/core",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "deps": {
     "moonbitlang/x": "0.4.40"
   },
   "readme": "README.md",
   "repository": "https://github.com/otoneko1102/purus",
   "license": "Apache-2.0",
-  "keywords": ["purus", "compiler", "altjs", "javascript"],
+  "keywords": [
+    "purus",
+    "compiler",
+    "altjs",
+    "javascript"
+  ],
   "description": "A language that compiles to JavaScript — no Shift key required"
 }

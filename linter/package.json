@@ -1,6 +1,6 @@
 {
   "name": "@puruslang/linter",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Linter for the Purus language",
   "license": "Apache-2.0",
   "main": "src/index.js",
@@ -14,8 +14,7 @@
     "altjs",
     "lang",
     "language",
-    "noshift",
-    "noshift.js"
+    "noshift"
   ],
   "author": "otoneko1102 (https://github.com/otoneko1102)",
   "homepage": "https://purus.work",

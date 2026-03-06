@@ -1,6 +1,6 @@
 {
   "name": "purus",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "A language that compiles to JavaScript — no Shift key required",
   "main": "index.js",
   "module": "index.mjs",
@@ -26,7 +26,8 @@
     "build:compiler": "moon build --target js",
     "build:copy": "node scripts/build.js",
     "build": "npm run build:compiler && npm run build:copy",
-    "prepublishOnly": "npm run build"
+    "sync-version": "node scripts/sync-version.js",
+    "prepublishOnly": "npm run sync-version && npm run build"
   },
   "keywords": [
     "compiler",
@@ -36,8 +37,7 @@
     "altjs",
     "lang",
     "purus",
-    "noshift",
-    "noshift.js"
+    "noshift"
   ],
   "author": "otoneko1102 (https://github.com/otoneko1102)",
   "license": "Apache-2.0",
