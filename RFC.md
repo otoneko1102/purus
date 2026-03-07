@@ -1,6 +1,6 @@
 # Purus Language Specification
 
-**RFC — v0.5.0**
+**RFC — v0.6.0**
 
 > Purus — _/ˈpuː.rus/_ — means _pure_ in Latin.
 > A beautiful, simple, and easy-to-use language that compiles to JavaScript.
@@ -86,8 +86,19 @@
 14. [Code Generation](#14-code-generation)
     - 14.1 [Identifier Mapping](#141-identifier-mapping)
     - 14.2 [Type Erasure](#142-type-erasure)
-15. [Keyword Reference Table](#15-keyword-reference-table)
-16. [Grammar Summary (EBNF-like)](#16-grammar-summary-ebnf-like)
+    - 14.3 [Strict Mode](#143-strict-mode)
+    - 14.4 [Private Fields](#144-private-fields)
+15. [Classes](#15-classes)
+    - 15.1 [Class Declaration](#151-class-declaration)
+    - 15.2 [Constructor](#152-constructor)
+    - 15.3 [Methods](#153-methods)
+    - 15.4 [Static Methods](#154-static-methods)
+    - 15.5 [Async Methods](#155-async-methods)
+    - 15.6 [Getters and Setters](#156-getters-and-setters)
+    - 15.7 [Inheritance](#157-inheritance)
+    - 15.8 [Private Fields](#158-private-fields)
+16. [Keyword Reference Table](#16-keyword-reference-table)
+17. [Grammar Summary (EBNF-like)](#17-grammar-summary-ebnf-like)
 
 ---
 
@@ -168,6 +179,8 @@ The following words are reserved and cannot be used as identifiers:
 **Constructor:** `list`, `object`
 
 **Error handling:** `try`, `catch`, `finally`, `throw`
+
+**Class:** `class`, `extends`, `super`, `static`, `private`, `get`, `set`
 
 **Other:** `new`, `delete`, `this`
 
@@ -1220,9 +1233,295 @@ The following constructs are removed during code generation:
 - `as Type` — type casts (the expression value is preserved)
 - `type Name be Type` — type alias declarations
 
+### 14.3 Strict Mode
+
+By default, the Purus compiler emits `"use strict";` at the top of every generated JavaScript file. This can be controlled via:
+
+**CLI flag:**
+
+```
+purus build --strict true    -- enables strict mode (default)
+purus build --strict false   -- disables strict mode
+```
+
+**Configuration file** (`config.purus`):
+
+```
+const strict be true         -- enables strict mode (default)
+const strict be false        -- disables strict mode
+```
+
+When strict mode is enabled, the generated output begins with:
+
+```js
+"use strict";
+```
+
+The CLI flag takes precedence over the configuration file setting.
+
+### 14.4 Private Fields
+
+Inside a class body, fields declared with `private` are tracked by the compiler. When any dot access (e.g., `this.field-name`) references a private field name, the compiler automatically emits a `#` prefix in the JavaScript output:
+
+| Purus | JavaScript |
+|-------|-----------|
+| `this.secret` (private) | `this.#secret` |
+| `this.name` (public) | `this.name` |
+
+This mapping is scoped to the enclosing class — private field names from one class do not affect another.
+
 ---
 
-## 15. Keyword Reference Table
+## 15. Classes
+
+Purus supports JavaScript class declarations with an indentation-based syntax.
+
+### 15.1 Class Declaration
+
+```
+class Animal
+  fn new[name]
+    this.name be name
+
+  fn speak
+    console.log[this.name]
+```
+
+```js
+class Animal {
+  constructor(name) {
+    this.name = name;
+  }
+  speak() {
+    console.log(this.name);
+  }
+}
+```
+
+### 15.2 Constructor
+
+Constructors are declared with `fn new`. Parameters use `[]` brackets with `;` separators:
+
+```
+class Point
+  fn new[x; y]
+    this.x be x
+    this.y be y
+```
+
+```js
+class Point {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+}
+```
+
+Expression body with `to`:
+
+```
+class Wrapper
+  fn new[value] to this.value be value
+```
+
+```js
+class Wrapper {
+  constructor(value) { return this.value = value; }
+}
+```
+
+### 15.3 Methods
+
+Methods use the same `fn` syntax as regular functions:
+
+```
+class Calculator
+  fn add a; b to a add b
+
+  fn multiply a; b
+    return a mul b
+```
+
+```js
+class Calculator {
+  add(a, b) { return a + b; }
+  multiply(a, b) {
+    return a * b;
+  }
+}
+```
+
+### 15.4 Static Methods
+
+Prefix method declarations with `static`:
+
+```
+class MathUtils
+  static fn square x to x mul x
+
+  static fn cube x
+    return x pow 3
+```
+
+```js
+class MathUtils {
+  static square(x) { return x * x; }
+  static cube(x) {
+    return x ** 3;
+  }
+}
+```
+
+### 15.5 Async Methods
+
+Prefix method declarations with `async`:
+
+```
+class Api
+  async fn fetch-data url
+    const res be await fetch[url]
+    return res.json[]
+```
+
+```js
+class Api {
+  async fetchData(url) {
+    const res = await fetch(url);
+    return res.json();
+  }
+}
+```
+
+Static async methods combine both prefixes:
+
+```
+class Service
+  static async fn load to await fetch[///data///]
+```
+
+```js
+class Service {
+  static async load() { return await fetch("data"); }
+}
+```
+
+### 15.6 Getters and Setters
+
+Use `get fn` and `set fn` to declare accessors:
+
+```
+class Person
+  fn new[name]
+    this.internal-name be name
+
+  get fn name to this.internal-name
+
+  set fn name value
+    this.internal-name be value
+```
+
+```js
+class Person {
+  constructor(name) {
+    this.internal_name = name;
+  }
+  get name() { return this.internal_name; }
+  set name(value) {
+    this.internal_name = value;
+  }
+}
+```
+
+### 15.7 Inheritance
+
+Use `extends` to inherit from a parent class. Use `super` to call the parent constructor or methods:
+
+```
+class Animal
+  fn new[name]
+    this.name be name
+
+  fn speak
+    console.log[this.name]
+
+class Dog extends Animal
+  fn new[name; breed]
+    super[name]
+    this.breed be breed
+
+  fn speak
+    super.speak[]
+    console.log[///Woof!///]
+```
+
+```js
+class Animal {
+  constructor(name) {
+    this.name = name;
+  }
+  speak() {
+    console.log(this.name);
+  }
+}
+class Dog extends Animal {
+  constructor(name, breed) {
+    super(name);
+    this.breed = breed;
+  }
+  speak() {
+    super.speak();
+    console.log("Woof!");
+  }
+}
+```
+
+### 15.8 Private Fields
+
+Use `private` to declare private fields. Private fields are prefixed with `#` in JavaScript output:
+
+```
+class Account
+  private balance be 0
+
+  fn new[initial]
+    this.balance be initial
+
+  fn deposit amount
+    this.balance be this.balance add amount
+
+  get fn balance to this.balance
+```
+
+```js
+class Account {
+  #balance = 0;
+  constructor(initial) {
+    this.#balance = initial;
+  }
+  deposit(amount) {
+    this.#balance = this.#balance + amount;
+  }
+  get balance() { return this.#balance; }
+}
+```
+
+Private fields without a default value:
+
+```
+class Secret
+  private data
+```
+
+```js
+class Secret {
+  #data;
+}
+```
+
+---
+
+## 16. Keyword Reference Table
 
 ### Declaration
 
@@ -1342,6 +1641,18 @@ The following constructs are removed during code generation:
 | `instanceof` | `instanceof` | Instance check |
 | `type` | _(erased)_ | Type alias |
 
+### Class
+
+| Keyword | JS Output | Description |
+|---------|-----------|-------------|
+| `class` | `class` | Class declaration |
+| `extends` | `extends` | Class inheritance |
+| `super` | `super` | Parent class reference |
+| `static` | `static` | Static method modifier |
+| `private` | `#` (prefix) | Private field declaration |
+| `get` | `get` | Getter accessor |
+| `set` | `set` | Setter accessor |
+
 ### Other
 
 | Keyword | JS Output | Description |
@@ -1371,12 +1682,12 @@ The following constructs are removed during code generation:
 
 ---
 
-## 16. Grammar Summary (EBNF-like)
+## 17. Grammar Summary (EBNF-like)
 
 ```ebnf
 Program       = { Statement } ;
 
-Statement     = VarDecl | FnDecl | IfStmt | UnlessStmt
+Statement     = VarDecl | FnDecl | ClassDecl | IfStmt | UnlessStmt
               | WhileStmt | UntilStmt | ForStmt | MatchStmt
               | TryCatch | Throw | Return | Break | Continue
               | ImportDecl | UseDecl | ModDecl | ExportDecl | PubDecl
@@ -1436,6 +1747,20 @@ UseDecl       = "use" DottedName
 
 ModDecl       = "namespace" Ident INDENT Block DEDENT ;
 
+ClassDecl     = "class" Ident ["extends" Ident]
+                INDENT { ClassMember } DEDENT ;
+
+ClassMember   = "private" Ident ["be" Expr]                          (* private field *)
+              | "fn" "new" ["[" ParamList "]"]
+                ( "to" Expr | INDENT Block DEDENT )                  (* constructor *)
+              | ["static"] ["async"] "fn" Ident ParamList ["gives" Type]
+                ( "to" Expr | INDENT Block DEDENT )                  (* method *)
+              | "get" "fn" Ident ["gives" Type]
+                ( "to" Expr | INDENT Block DEDENT )                  (* getter *)
+              | "set" "fn" Ident Ident
+                ( "to" Expr | INDENT Block DEDENT )                  (* setter *)
+              ;
+
 PostfixMod    = "if" Expr | "unless" Expr | "for" Ident "in" Expr ;
 
 Expr          = Pipe ;
@@ -1456,7 +1781,7 @@ Postfix       = Primary { "." Ident ["[" ArgList "]"]
               | "[\\" Expr "]"
               | "as" Ident } ;
 Primary       = IntLit | FloatLit | StrLit | InterpStr | Regex
-              | "true" | "false" | "null" | "nil" | "undefined" | "this"
+              | "true" | "false" | "null" | "nil" | "undefined" | "this" | "super"
               | Ident
               | "list" "[" ExprList "]"
               | "object" "[" ObjEntries "]"
@@ -1487,5 +1812,5 @@ DottedName    = Ident { "." Ident } ;
 
 ---
 
-_This document describes the Purus language as implemented in v0.5.0._
+_This document describes the Purus language as implemented in v0.6.0._
 _Purus is licensed under the Apache 2.0 License._
