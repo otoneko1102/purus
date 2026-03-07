@@ -57,6 +57,9 @@ pub(all) enum Expr {
   // This
   ThisExpr
 
+  // Super
+  SuperExpr
+
   // Optional chaining
   OptDotAccess(Expr, String)             // obj\.field
   OptMethodCall(Expr, String, Array[Expr]) // obj\.method[args]
@@ -162,6 +165,9 @@ pub(all) enum Stmt {
   PubDecl(Stmt)
   TypeDecl(String, Expr)   // type alias
 
+  // Class declaration
+  ClassDecl(ClassDecl)
+
   // Delete
   DeleteStmt(Expr)
 }
@@ -199,4 +205,20 @@ pub(all) enum ImportDecl {
   CjsRequire(String, String)                          // name, module
   DynImport(String)                                    // dynamic import
   SideEffectImport(String)                             // import ///module///
+}
+
+///|
+pub(all) struct ClassDecl {
+  name : String
+  parent : String?               // extends
+  members : Array[ClassMember]
+}
+
+///|
+pub(all) enum ClassMember {
+  Field(Bool, String, Expr?)                 // private?, name, default value?
+  Constructor(Array[String], FnBody)         // params, body
+  Method(Bool, Bool, String, Array[String], FnBody) // static?, async?, name, params, body
+  Getter(String, FnBody)                     // name, body
+  Setter(String, String, FnBody)             // name, param, body
 }

@@ -11,12 +11,19 @@ let entry = null;
 let output = null;
 let noHeader = false;
 let toStdout = false;
+let strict = null; // null = use config or default (true)
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--no-header") {
     noHeader = true;
   } else if (args[i] === "--stdout") {
     toStdout = true;
+  } else if (args[i] === "--strict") {
+    if (i + 1 < args.length && (args[i + 1] === "true" || args[i + 1] === "false")) {
+      strict = args[++i] === "true";
+    } else {
+      strict = true;
+    }
   } else if (args[i] === "--entry" || args[i] === "-e") {
     entry = args[++i];
   } else if (args[i] === "--output" || args[i] === "-o") {
@@ -30,7 +37,8 @@ if (entry && fs.existsSync(entry) && fs.statSync(entry).isFile() && /\.(c|m)?pur
   // Single file - handle directly via compile API
   const source = fs.readFileSync(entry, "utf8");
   const useHeader = !noHeader;
-  const js = compile(source, { header: useHeader });
+  const useStrict = strict !== null ? strict : true;
+  const js = compile(source, { header: useHeader, strict: useStrict });
 
   if (toStdout) {
     process.stdout.write(js);
@@ -52,11 +60,13 @@ if (entry && fs.existsSync(entry) && fs.statSync(entry).isFile() && /\.(c|m)?pur
   let entryDir;
   let outputDir;
   let useHeader;
+  let useStrict;
 
   if (entry) {
     entryDir = path.resolve(entry);
     outputDir = output ? path.resolve(output) : path.resolve("dist");
     useHeader = !noHeader;
+    useStrict = strict !== null ? strict : true;
 
     const result = loadConfig();
     if (result) {
@@ -67,6 +77,9 @@ if (entry && fs.existsSync(entry) && fs.statSync(entry).isFile() && /\.(c|m)?pur
         );
       }
       useHeader = result.config.header !== false && !noHeader;
+      if (strict === null) {
+        useStrict = result.config.strict !== false;
+      }
     }
   } else {
     const result = loadConfig();
@@ -88,6 +101,7 @@ if (entry && fs.existsSync(entry) && fs.statSync(entry).isFile() && /\.(c|m)?pur
       ? path.resolve(output)
       : path.resolve(configDir, config.output || "dist");
     useHeader = config.header !== false && !noHeader;
+    useStrict = strict !== null ? strict : config.strict !== false;
   }
 
   if (!fs.existsSync(entryDir)) {
@@ -116,7 +130,7 @@ if (entry && fs.existsSync(entry) && fs.statSync(entry).isFile() && /\.(c|m)?pur
   let count = 0;
   for (const f of files) {
     const source = fs.readFileSync(f, "utf8");
-    const js = compile(source, { header: useHeader });
+    const js = compile(source, { header: useHeader, strict: useStrict });
     let outputPath;
 
     if (stat.isFile()) {

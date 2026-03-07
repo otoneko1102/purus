@@ -166,6 +166,7 @@ fn Parser::parse_stmt(self : Parser) -> Stmt? {
       Some(DeleteStmt(self.parse_expr()))
     }
     Type_ => Some(self.parse_type_decl())
+    Class_ => Some(self.parse_class_decl())
     _ => {
       let expr = self.parse_expr()
       // Check for assignment: EXPR be EXPR
@@ -766,4 +767,200 @@ fn Parser::parse_type_decl(self : Parser) -> Stmt {
   self.expect(Be)
   let value = self.parse_expr()
   TypeDecl(name, value)
+}
+
+///|
+fn Parser::parse_class_decl(self : Parser) -> Stmt {
+  self.pos += 1 // skip class
+  let name = self.parse_ident_name()
+  let parent : String? = if self.peek() == Extends_ {
+    self.pos += 1
+    Some(self.parse_ident_name())
+  } else {
+    None
+  }
+  let saved = self.pos
+  let indent = self.skip_newlines_and_indent()
+  let _ = saved
+  let members : Array[ClassMember] = []
+  match self.parse_class_member() {
+    Some(m) => members.push(m)
+    None => ()
+  }
+  while self.pos < self.tokens.length() && self.peek() != Eof {
+    let saved2 = self.pos
+    let next_indent = self.skip_newlines_and_indent()
+    if next_indent < indent {
+      self.pos = saved2
+      break
+    }
+    match self.parse_class_member() {
+      Some(m) => members.push(m)
+      None => { self.pos += 1 }
+    }
+  }
+  ClassDecl({ name, parent, members })
+}
+
+///|
+fn Parser::parse_class_member(self : Parser) -> ClassMember? {
+  match self.peek() {
+    Private_ => {
+      self.pos += 1
+      let field_name = self.parse_ident_name()
+      let default_val : Expr? = if self.peek() == Be {
+        self.pos += 1
+        Some(self.parse_expr())
+      } else {
+        None
+      }
+      Some(Field(true, field_name, default_val))
+    }
+    Static_ => {
+      self.pos += 1
+      if self.peek() == Fn {
+        self.pos += 1
+        let meth_name = self.parse_ident_name()
+        let params = self.parse_param_list()
+        if self.peek() == Gives {
+          self.pos += 1
+          self.skip_type_annotation()
+        }
+        let body : FnBody = if self.peek() == To {
+          self.pos += 1
+          ToExpr(self.parse_expr())
+        } else {
+          let saved = self.pos
+          let indent = self.skip_newlines_and_indent()
+          let _ = saved
+          Block(self.parse_block(indent))
+        }
+        Some(Method(true, false, meth_name, params, body))
+      } else if self.peek() == Async_ {
+        self.pos += 1
+        if self.peek() == Fn {
+          self.pos += 1
+          let meth_name = self.parse_ident_name()
+          let params = self.parse_param_list()
+          if self.peek() == Gives {
+            self.pos += 1
+            self.skip_type_annotation()
+          }
+          let body : FnBody = if self.peek() == To {
+            self.pos += 1
+            ToExpr(self.parse_expr())
+          } else {
+            let saved = self.pos
+            let indent = self.skip_newlines_and_indent()
+            let _ = saved
+            Block(self.parse_block(indent))
+          }
+          Some(Method(true, true, meth_name, params, body))
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    }
+    Get_ => {
+      self.pos += 1
+      if self.peek() == Fn {
+        self.pos += 1
+        let getter_name = self.parse_ident_name()
+        let body : FnBody = if self.peek() == To {
+          self.pos += 1
+          ToExpr(self.parse_expr())
+        } else {
+          let saved = self.pos
+          let indent = self.skip_newlines_and_indent()
+          let _ = saved
+          Block(self.parse_block(indent))
+        }
+        Some(Getter(getter_name, body))
+      } else {
+        None
+      }
+    }
+    Set_ => {
+      self.pos += 1
+      if self.peek() == Fn {
+        self.pos += 1
+        let setter_name = self.parse_ident_name()
+        let param = self.parse_ident_name()
+        let body : FnBody = if self.peek() == To {
+          self.pos += 1
+          ToExpr(self.parse_expr())
+        } else {
+          let saved = self.pos
+          let indent = self.skip_newlines_and_indent()
+          let _ = saved
+          Block(self.parse_block(indent))
+        }
+        Some(Setter(setter_name, param, body))
+      } else {
+        None
+      }
+    }
+    Fn => {
+      self.pos += 1
+      // Check for constructor: fn new
+      if self.peek() == New_ {
+        self.pos += 1
+        let params = self.parse_param_list()
+        let body : FnBody = if self.peek() == To {
+          self.pos += 1
+          ToExpr(self.parse_expr())
+        } else {
+          let saved = self.pos
+          let indent = self.skip_newlines_and_indent()
+          let _ = saved
+          Block(self.parse_block(indent))
+        }
+        Some(Constructor(params, body))
+      } else {
+        let meth_name = self.parse_ident_name()
+        let params = self.parse_param_list()
+        if self.peek() == Gives {
+          self.pos += 1
+          self.skip_type_annotation()
+        }
+        let body : FnBody = if self.peek() == To {
+          self.pos += 1
+          ToExpr(self.parse_expr())
+        } else {
+          let saved = self.pos
+          let indent = self.skip_newlines_and_indent()
+          let _ = saved
+          Block(self.parse_block(indent))
+        }
+        Some(Method(false, false, meth_name, params, body))
+      }
+    }
+    Async_ => {
+      self.pos += 1
+      if self.peek() == Fn {
+        self.pos += 1
+        let meth_name = self.parse_ident_name()
+        let params = self.parse_param_list()
+        if self.peek() == Gives {
+          self.pos += 1
+          self.skip_type_annotation()
+        }
+        let body : FnBody = if self.peek() == To {
+          self.pos += 1
+          ToExpr(self.parse_expr())
+        } else {
+          let saved = self.pos
+          let indent = self.skip_newlines_and_indent()
+          let _ = saved
+          Block(self.parse_block(indent))
+        }
+        Some(Method(false, true, meth_name, params, body))
+      } else {
+        None
+      }
+    }
+    _ => None
+  }
 }

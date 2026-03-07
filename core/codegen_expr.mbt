@@ -112,7 +112,18 @@ fn JsCodegen::gen_expr(self : JsCodegen, expr : Expr) -> Unit {
     DotAccess(obj, field) => {
       self.gen_expr_wrap(obj)
       self.write(".")
-      self.write(field)
+      // In class context, check if field is private
+      let mut is_private = false
+      for pf in self.private_fields {
+        if pf == field {
+          is_private = true
+          break
+        }
+      }
+      if is_private {
+        self.write("#")
+      }
+      self.write(js_ident(field))
     }
     IndexAccess(obj, index) => {
       self.gen_expr_wrap(obj)
@@ -393,6 +404,7 @@ fn JsCodegen::gen_expr(self : JsCodegen, expr : Expr) -> Unit {
       self.gen_expr(inner)
     }
     ThisExpr => self.write("this")
+    SuperExpr => self.write("super")
     OptDotAccess(obj, field) => {
       self.gen_expr_wrap(obj)
       self.write("?.")

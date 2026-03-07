@@ -87,6 +87,15 @@ pub(all) enum TokenKind {
   All_
   Type_
 
+  // Class-related
+  Class_
+  Extends_
+  Super_
+  Static_
+  Private_
+  Get_
+  Set_
+
   // Null-family
   Null_
   Nil_

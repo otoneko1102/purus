@@ -10,10 +10,17 @@ const args = process.argv.slice(3);
 
 let entry = null;
 let noHeader = false;
+let strict = null;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--no-header") {
     noHeader = true;
+  } else if (args[i] === "--strict") {
+    if (i + 1 < args.length && (args[i + 1] === "true" || args[i + 1] === "false")) {
+      strict = args[++i] === "true";
+    } else {
+      strict = true;
+    }
   } else if (args[i] === "--entry" || args[i] === "-e") {
     entry = args[++i];
   } else if (!args[i].startsWith("-")) {
@@ -24,7 +31,8 @@ for (let i = 0; i < args.length; i++) {
 if (entry && fs.existsSync(entry) && fs.statSync(entry).isFile()) {
   // Single file - compile and run
   const source = fs.readFileSync(entry, "utf8");
-  const js = compile(source, { header: false });
+  const useStrict = strict !== null ? strict : true;
+  const js = compile(source, { header: false, strict: useStrict });
   const m = new (require("module"))();
   m._compile(js, entry);
 } else {
@@ -72,7 +80,8 @@ if (entry && fs.existsSync(entry) && fs.statSync(entry).isFile()) {
 
   for (const f of files) {
     const source = fs.readFileSync(f, "utf8");
-    const js = compile(source, { header: false });
+    const useStrict2 = strict !== null ? strict : true;
+    const js = compile(source, { header: false, strict: useStrict2 });
 
     const tmpFile = path.join(
       require("os").tmpdir(),

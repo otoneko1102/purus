@@ -22,7 +22,7 @@ const VERSION = require("../package.json").version;
  * @returns {string} Generated JavaScript code
  */
 function compile(source, options = {}) {
-  const { header = true } = options;
+  const { header = true, strict = true } = options;
   const tmpFile = path.join(
     require("os").tmpdir(),
     `purus_${Date.now()}_${Math.random().toString(36).slice(2)}.purus`
@@ -31,6 +31,9 @@ function compile(source, options = {}) {
   try {
     fs.writeFileSync(tmpFile, source, "utf8");
     const args = ["build", "--stdout", "--no-header"];
+    if (!strict) {
+      args.push("--strict", "false");
+    }
     args.push(tmpFile);
     const result = execFileSync(process.execPath, [COMPILER_JS, ...args], {
       encoding: "utf8",

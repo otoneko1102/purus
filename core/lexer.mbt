@@ -534,6 +534,13 @@ fn Lexer::scan_ident(self : Lexer) -> Unit {
     "coal" => Coal
     "list" => List_
     "object" => Object_
+    "class" => Class_
+    "extends" => Extends_
+    "super" => Super_
+    "static" => Static_
+    "private" => Private_
+    "get" => Get_
+    "set" => Set_
     _ => Ident(word)
   }
   self.emit(kind, line, col)

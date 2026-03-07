@@ -447,6 +447,7 @@ fn Parser::parse_primary(self : Parser) -> Expr {
     Null_ | Nil_ => { self.pos += 1; NullLit }
     Undefined_ => { self.pos += 1; UndefinedLit }
     This_ => { self.pos += 1; ThisExpr }
+    Super_ => { self.pos += 1; SuperExpr }
     Ident(s) => {
       self.pos += 1
       Ident(s)

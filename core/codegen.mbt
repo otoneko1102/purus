@@ -4,11 +4,12 @@
 pub(all) struct JsCodegen {
   buf : StringBuilder
   mut indent_level : Int
+  mut private_fields : Array[String] // tracks private field names in current class
 }
 
 ///|
 pub fn JsCodegen::new() -> JsCodegen {
-  { buf: StringBuilder::new(), indent_level: 0 }
+  { buf: StringBuilder::new(), indent_level: 0, private_fields: [] }
 }
 
 ///|
@@ -37,7 +38,8 @@ pub fn JsCodegen::generate(
   self : JsCodegen,
   stmts : Array[Stmt],
   header~ : String = "",
-  shebang~ : String = ""
+  shebang~ : String = "",
+  strict~ : Bool = true
 ) -> String {
   if shebang.length() > 0 {
     self.buf.write_string(shebang)
@@ -46,6 +48,9 @@ pub fn JsCodegen::generate(
   if header.length() > 0 {
     self.buf.write_string(header)
     self.buf.write_char('\n')
+  }
+  if strict {
+    self.buf.write_string("\"use strict\";\n")
   }
   for stmt in stmts {
     self.gen_stmt(stmt)
@@ -383,6 +388,7 @@ fn JsCodegen::gen_stmt(self : JsCodegen, stmt : Stmt) -> Unit {
       self.write("\n")
     }
     TypeDecl(_, _) => () // Type declarations are erased at runtime
+    ClassDecl(decl) => self.gen_class_decl(decl)
     DeleteStmt(expr) => {
       self.write_indent()
       self.write("delete ")
@@ -488,6 +494,124 @@ fn JsCodegen::gen_fn_decl(self : JsCodegen, decl : FnDecl) -> Unit {
   }
   self.write(") ")
   match decl.body {
+    ToExpr(expr) => {
+      self.write("{ return ")
+      self.gen_expr(expr)
+      self.write("; }\n")
+    }
+    Block(stmts) => {
+      self.write("{\n")
+      self.indent_level += 1
+      for s in stmts {
+        self.gen_stmt(s)
+      }
+      self.indent_level -= 1
+      self.writeln("}")
+    }
+  }
+}
+
+///|
+fn JsCodegen::gen_class_decl(self : JsCodegen, decl : ClassDecl) -> Unit {
+  let saved_private = self.private_fields
+  self.private_fields = []
+  // Collect private field names
+  for mbr in decl.members {
+    match mbr {
+      Field(true, name, _) => self.private_fields.push(name)
+      _ => ()
+    }
+  }
+  self.write_indent()
+  self.write("class ")
+  self.write(js_ident(decl.name))
+  match decl.parent {
+    Some(p) => {
+      self.write(" extends ")
+      self.write(js_ident(p))
+    }
+    None => ()
+  }
+  self.write(" {\n")
+  self.indent_level += 1
+  for mbr in decl.members {
+    match mbr {
+      Field(is_private, name, default_val) => {
+        self.write_indent()
+        if is_private {
+          self.write("#")
+        }
+        self.write(js_ident(name))
+        match default_val {
+          Some(v) => {
+            self.write(" = ")
+            self.gen_expr(v)
+          }
+          None => ()
+        }
+        self.write(";\n")
+      }
+      Constructor(params, body) => {
+        self.write_indent()
+        self.write("constructor(")
+        let mut first = true
+        for p in params {
+          if not(first) {
+            self.write(", ")
+          }
+          self.write(js_ident(p))
+          first = false
+        }
+        self.write(") ")
+        self.gen_class_body(body)
+      }
+      Method(is_static, is_async, name, params, body) => {
+        self.write_indent()
+        if is_static {
+          self.write("static ")
+        }
+        if is_async {
+          self.write("async ")
+        }
+        self.write(js_ident(name))
+        self.write("(")
+        let mut first = true
+        for p in params {
+          if not(first) {
+            self.write(", ")
+          }
+          self.write(js_ident(p))
+          first = false
+        }
+        self.write(") ")
+        self.gen_class_body(body)
+      }
+      Getter(name, body) => {
+        self.write_indent()
+        self.write("get ")
+        self.write(js_ident(name))
+        self.write("() ")
+        self.gen_class_body(body)
+      }
+      Setter(name, param, body) => {
+        self.write_indent()
+        self.write("set ")
+        self.write(js_ident(name))
+        self.write("(")
+        self.write(js_ident(param))
+        self.write(") ")
+        self.gen_class_body(body)
+      }
+    }
+  }
+  self.indent_level -= 1
+  self.writeln("}")
+  self.private_fields = saved_private
+}
+
+///|
+fn JsCodegen::gen_class_body(self : JsCodegen, body : FnBody) -> Unit {
+  match body {
     ToExpr(expr) => {
       self.write("{ return ")
       self.gen_expr(expr)
