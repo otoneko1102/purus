@@ -27,7 +27,7 @@
     "build:copy": "node scripts/build.js",
     "build": "npm run build:compiler && npm run build:copy",
     "sync": "node scripts/sync-version.js",
-    "prepublishOnly": "npm run sync-version && npm run build"
+    "prepublishOnly": "npm run sync && npm run build"
   },
   "keywords": [
     "compiler",
